@@ -24,6 +24,29 @@ function envVars() {
 const vars = envVars();
 const configured = Boolean(vars.SANITY_PROJECT_ID && vars.SANITY_DATASET);
 
+/** Normalize a site URL, or null when unset/invalid (never fail the build). */
+function toValidSiteUrl(raw) {
+  if (!raw) return null;
+  let value = String(raw).trim();
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+  try {
+    return new URL(value).toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
+// `site` powers canonical/OG URLs. Prefer SITE_URL, then Vercel's own URLs, then localhost.
+const site =
+  toValidSiteUrl(vars.SITE_URL) ??
+  toValidSiteUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
+  toValidSiteUrl(process.env.VERCEL_URL) ??
+  'http://localhost:4321';
+
+if (!toValidSiteUrl(vars.SITE_URL) && vars.SITE_URL) {
+  console.warn(`[portfolio] Ignoring invalid SITE_URL "${vars.SITE_URL}"; falling back.`);
+}
+
 // Workaround: @sanity/astro's own `sanity:module-dedupe` Vite plugin hard-codes
 // `optimizeDeps.include` entries (react-compiler-runtime, styled-components,
 // lodash/startCase.js) that Vite 8/Rolldown cannot pre-bundle under pnpm's strict
@@ -36,7 +59,7 @@ process.env.SANITY_ASTRO_DISABLE_MODULE_DEDUPE = '1';
 export default defineConfig({
   output: 'server',
   adapter: vercel(),
-  site: vars.SITE_URL ?? 'http://localhost:4321',
+  site,
   integrations: configured
     ? [
         react(),
