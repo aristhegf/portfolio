@@ -103,9 +103,16 @@ Colors and tokens live in `src/styles/global.css` (`:root` / `:root[data-theme='
 
 ## Working on Windows (WSL)
 
-If `pnpm install` is extremely slow on a `/mnt/c` drive, the project includes an `.npmrc` that
-keeps the heavy pnpm store on the native Linux filesystem. Vercel is unaffected (it installs
-fresh on its own infrastructure).
+If `pnpm install` is extremely slow on a `/mnt/c` drive, move the pnpm store to the native
+Linux filesystem — but do it **outside this repo** so Vercel is never affected:
+
+```bash
+pnpm config set virtual-store-dir ~/.cache/portfolio-vs   # writes to ~/.npmrc, not the repo
+```
+
+Never put a `virtual-store-dir`/`store-dir` in the repo's `.npmrc`: Vercel honors it too, and
+moving the store outside the project root breaks the Astro build (compile-cache miss on
+`@sanity/astro`'s studio route).
 
 ## Scripts
 
