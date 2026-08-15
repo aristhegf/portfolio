@@ -1,0 +1,55 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getProjects, getSettings } from '../lib/sanity';
+
+const settings = await getSettings();
+const projects = await getProjects();
+const writing = projects
+  .filter((p) => p.category?.slug.current === 'writing')
+  .sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+---
+
+<Layout title="Writing" settings={settings}>
+  <section class="section">
+    <div class="container">
+      <p class="meta reveal" style="--i: 0">
+        <strong>{writing.length} pieces</strong> · poems, articles, essays
+      </p>
+      <h1 class="display reveal" style="--i: 1; margin-top: 1.2rem">Writing</h1>
+      <p class="lead reveal" style="--i: 2; margin-top: 1.6rem; max-width: 46ch">
+        Everything written down — poems, articles, essays, and the occasional stray thought.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: 0">
+    <div class="container">
+      {
+        writing.length > 0 ? (
+          <div>
+            {writing.map((item, i) => (
+              <a
+                class="reading-item reveal"
+                href={`/work/${item.slug.current}`}
+                style={`--i: ${Math.min(i, 5)}`}
+              >
+                <div>
+                  <h2 class="reading-item__title">{item.title}</h2>
+                  {item.excerpt && <p class="reading-item__excerpt">{item.excerpt}</p>}
+                </div>
+                <span class="reading-item__year">{item.year}</span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="setup">
+            <h2 class="h3">No writing yet</h2>
+            <p style="margin-top: 0.8rem; color: var(--ink-2)">
+              Add a project with the <code>Writing</code> skill in the studio and it will appear here.
+            </p>
+          </div>
+        )
+      }
+    </div>
+  </section>
+</Layout>

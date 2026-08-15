@@ -1,0 +1,205 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Prose from '../../components/Prose.astro';
+import { getProjectBySlug, getSiblingProjects, getSettings, urlFor } from '../../lib/sanity';
+import { cx, embedSrc, isDirectVideo } from '../../lib/utils';
+
+const { slug } = Astro.params;
+const settings = await getSettings();
+const project = slug ? await getProjectBySlug(slug) : null;
+
+if (!project) {
+  Astro.response.status = 404;
+}
+
+const cover = project ? urlFor(project.coverImage, 1600) : undefined;
+const coverVideo = project?.coverVideo;
+const embed = project ? embedSrc(project.mediaUrl) : null;
+const siblings = project
+  ? await getSiblingProjects(project.slug.current)
+  : { prev: null, next: null };
+const gallery = project?.gallery || [];
+---
+
+<Layout
+  title={project?.title}
+  description={project?.excerpt}
+  settings={settings}
+  noindex={!project}
+>
+  {
+    !project ? (
+      <section class="section">
+        <div class="container">
+          <h1 class="display">Not found</h1>
+          <p class="lead" style="margin-top: 1.5rem">
+            This project doesn't exist — or it may have been moved.
+          </p>
+          <a class="btn btn--ghost mt-m" href="/work">Back to work</a>
+        </div>
+      </section>
+    ) : (
+      <>
+        <section class="section" style="padding-bottom: 0">
+          <div class="container">
+            <p class="meta reveal" style="--i: 0">
+              Work<span style="margin-inline: 0.6em; color: var(--ink-2)">/</span>
+              {project.category?.name || 'Project'}
+            </p>
+            <h1 class="display reveal" style="--i: 1; margin-top: 1.4rem; max-width: 22ch">
+              {project.title}
+            </h1>
+
+            <div class="detail-meta reveal" style="--i: 2; margin-top: 2.4rem">
+              {project.year && (
+                <span class="meta"><strong>Year</strong> — {project.year}</span>
+              )}
+              {project.role && (
+                <span class="meta"><strong>Role</strong> — {project.role}</span>
+              )}
+              {project.tags && project.tags.length > 0 && (
+                <span class="meta"><strong>Tags</strong> — {project.tags.join(', ')}</span>
+              )}
+            </div>
+
+            {project.excerpt && (
+              <p class="lead reveal" style="--i: 3; margin-top: 2rem">{project.excerpt}</p>
+            )}
+
+            {coverVideo ? (
+              <div class="media-frame mt-l reveal" style="--i: 3">
+                <video
+                  src={coverVideo}
+                  poster={cover}
+                  controls
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                ></video>
+              </div>
+            ) : (
+              cover && (
+                <div class="media-frame mt-l reveal" style="--i: 3">
+                  <img src={cover} alt={project.title} />
+                </div>
+              )
+            )}
+
+            {embed && (
+              <div class="media-frame mt-m reveal" style="--i: 4">
+                <iframe
+                  src={embed}
+                  title={`${project.title} video`}
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            )}
+
+            {isDirectVideo(project.mediaUrl) && (
+              <div class="media-frame mt-m reveal" style="--i: 4">
+                <video src={project.mediaUrl} controls preload="metadata" style="width: 100%"></video>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="container">
+            {
+              Array.isArray(project.body) && project.body.length > 0 && (
+                <div class="reveal" style="--i: 0">
+                  <Prose value={project.body} />
+                </div>
+              )
+            }
+
+            {gallery.length > 0 && (
+              <div class={cx('grid mt-l', gallery.length > 1 ? 'grid--2' : '')}>
+                {gallery.map((item) => {
+                  if (item && typeof item === 'object' && (item as { _type?: string })._type === 'video') {
+                    const v = item as { url?: string; caption?: string };
+                    const src = v.url && (embedSrc(v.url) || isDirectVideo(v.url)) ? (embedSrc(v.url) ?? v.url) : null;
+                    return src ? (
+                      <div class="media-frame reveal">
+                        {isDirectVideo(v.url) ? (
+                          <video src={src} controls preload="metadata" style="width: 100%"></video>
+                        ) : (
+                          <iframe
+                            src={src}
+                            title={v.caption || 'Project video'}
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen
+                          ></iframe>
+                        )}
+                        {v.caption && <p class="meta" style="padding: 0.7rem 1rem">{v.caption}</p>}
+                      </div>
+                    ) : null;
+                  }
+                  const src = urlFor(item, 1200);
+                  return src ? (
+                    <div class="media-frame reveal">
+                      <img src={src} alt="" loading="lazy" />
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            {(project.liveUrl || (project.links?.length ?? 0) > 0) && (
+              <div class="row mt-l">
+                {project.liveUrl && (
+                  <a class="btn" href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                    Visit live project <span class="arr">↗</span>
+                  </a>
+                )}
+                {project.links?.map(
+                  (link) =>
+                    link.url && (
+                      <a class="btn btn--ghost" href={link.url} target="_blank" rel="noopener noreferrer">
+                        {link.label || 'Link'} <span class="arr">↗</span>
+                      </a>
+                    ),
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section class="section" style="padding-top: 0">
+          <div class="container">
+            <div class="row">
+              <a class="index-item" href="/work">
+                <span class="index-item__num">ALL</span>
+                <span class="index-item__title">
+                  Back to all work
+                  <span class="arrow">→</span>
+                </span>
+                <span class="index-item__meta">Browse everything</span>
+              </a>
+            </div>
+            {
+              siblings.next && (
+                <a class="index-item" href={`/work/${siblings.next.slug.current}`}>
+                  <span class="index-item__num">NEXT</span>
+                  <span class="index-item__title">
+                    {siblings.next.title}
+                    <span class="arrow">→</span>
+                  </span>
+                  <span class="index-item__meta">
+                    {siblings.next.category?.name}
+                    {siblings.next.year ? ` · ${siblings.next.year}` : ''}
+                  </span>
+                </a>
+              )
+            }
+          </div>
+        </section>
+      </>
+    )
+  }
+</Layout>

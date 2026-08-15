@@ -1,0 +1,21 @@
+---
+import type { Props as PortableTextProps } from '@portabletext/astro/types';
+import { urlFor } from '../../lib/sanity';
+
+export type Props = PortableTextProps<{
+  _type: 'image';
+  alt?: string;
+  asset?: { _ref?: string };
+}>;
+
+const { node } = Astro.props;
+const src = urlFor(node, 1200);
+const alt = typeof node?.alt === 'string' ? node.alt : '';
+---
+
+{src && (
+  <figure class="portable-img">
+    <img src={src} alt={alt} loading="lazy" decoding="async" />
+    {alt && <figcaption>{alt}</figcaption>}
+  </figure>
+)}

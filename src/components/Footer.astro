@@ -1,0 +1,72 @@
+---
+import type { Settings } from '../lib/sanity';
+
+interface Props {
+  settings: Settings | null;
+}
+
+const { settings } = Astro.props;
+const year = new Date().getFullYear();
+const socials = settings?.socials || [];
+---
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__grid">
+      <div>
+        <p class="footer__brand">
+          {settings?.name || 'Portfolio'}<span style="color: var(--ink-2)">.</span>
+        </p>
+        {settings?.tagline && (
+          <p style="margin-top: 0.9rem; color: var(--ink-2); max-width: 34ch; font-size: 0.95rem;">
+            {settings.tagline}
+          </p>
+        )}
+        {settings?.email && (
+          <a
+            class="btn btn--ghost"
+            href={`mailto:${settings.email}`}
+            style="margin-top: 1.6rem"
+          >
+            {settings.email}
+          </a>
+        )}
+      </div>
+
+      <div>
+        <p class="footer__col-title">Navigate</p>
+        <ul class="footer__links">
+          <li><a href="/work">Work</a></li>
+          <li><a href="/writing">Writing</a></li>
+          <li><a href="/about">About</a></li>
+          <li><a href="/studio">Studio</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="footer__col-title">Elsewhere</p>
+        {socials.length ? (
+          <ul class="footer__links">
+            {socials.map((s) => (
+              <li>
+                <a href={s.url} target="_blank" rel="noopener noreferrer">
+                  {s.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p style="color: var(--ink-2); font-size: 0.9rem;">
+            {settings?.location || 'Available for new work.'}
+          </p>
+        )}
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <span>© {year} {settings?.name || 'Portfolio'}</span>
+      <span>{settings?.location || 'Remote'}</span>
+      <span>Built with Astro + Sanity</span>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,200 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCategories, getProjects, getSettings } from '../lib/sanity';
+
+const settings = await getSettings();
+const categories = await getCategories();
+const projects = await getProjects();
+
+const featured = projects.filter((p) => p.featured);
+const rest = projects.filter((p) => !p.featured);
+const heroProjects = [...featured, ...rest].slice(0, 5);
+
+const writing = projects
+  .filter((p) => p.category?.slug.current === 'writing')
+  .slice(0, 3);
+
+const counts = new Map<string, number>();
+for (const p of projects) {
+  const slug = p.category?.slug.current;
+  if (slug) counts.set(slug, (counts.get(slug) ?? 0) + 1);
+}
+
+const displayName = settings?.name || 'Portfolio';
+const headline = settings?.tagline || 'Editor, designer, and writer.';
+const role = settings?.role || 'Selected work across video, design, and the web';
+---
+
+<Layout title={settings?.name ? `${settings.name} — work` : undefined} settings={settings}>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <p class="hero__eyebrow meta reveal" style="--i: 0">
+        <span class="bar"></span>
+        {displayName} · {role}
+      </p>
+      <h1 class="display reveal" style="--i: 1">{headline}</h1>
+      <p class="lead hero__lead reveal" style="--i: 2">
+        {projects.length > 0
+          ? `${projects.length} projects across ${categories.length || 1} disciplines, catalogued by skill and by year.`
+          : 'A working archive of everything I make — video, books, sites, and words.'}
+      </p>
+      <div class="hero__actions reveal" style="--i: 3">
+        <a class="btn" href="/work">
+          See the work <span class="arr">→</span>
+        </a>
+        <a class="btn btn--ghost" href="/about">
+          About
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Category marquee -->
+  {
+    categories.length > 0 && (
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track">
+          {
+            [0, 1].map(() => (
+              <div class="marquee__item">
+                {categories.map((c) => (
+                  <>
+                    <span>{c.name}</span>
+                    <span class="dot">•</span>
+                  </>
+                ))}
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    )
+  }
+
+  <!-- Selected work -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2 class="h2">Selected work</h2>
+        <a class="link-more" href="/work">
+          All work →
+        </a>
+      </div>
+
+      {heroProjects.length > 0 ? (
+        <div>
+          {heroProjects.map((project, i) => (
+            <a
+              class="index-item reveal"
+              href={`/work/${project.slug.current}`}
+              style={`--i: ${Math.min(i, 4)}`}
+            >
+              <span class="index-item__num">{String(i + 1).padStart(2, '0')}</span>
+              <span class="index-item__title">
+                {project.title}
+                <span class="arrow">→</span>
+              </span>
+              <span class="index-item__meta">
+                {project.category?.name || 'Project'}
+                {project.year ? ` · ${project.year}` : ''}
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p style="color: var(--ink-2)">
+          Nothing here yet — add your first project in the Sanity Studio.
+        </p>
+      )}
+    </div>
+  </section>
+
+  <!-- Skills -->
+  {
+    categories.length > 0 && (
+      <section class="section" style="padding-top: 0">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2 class="h2">What I do</h2>
+            <a class="link-more" href="/work">
+              Browse by skill →
+            </a>
+          </div>
+          <div class="grid grid--3">
+            {categories.map((cat, i) => (
+              <a
+                class="skill-cell reveal"
+                href={`/work?category=${cat.slug.current}`}
+                style={`--i: ${i}`}
+              >
+                <p class="skill-cell__count">
+                  {counts.get(cat.slug.current) ?? 0} {counts.get(cat.slug.current) === 1 ? 'project' : 'projects'}
+                </p>
+                <h3 class="skill-cell__name">{cat.name}</h3>
+                {cat.description && <p class="skill-cell__desc">{cat.description}</p>}
+                <span class="skill-cell__go">
+                  View work <span class="arr">→</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Latest writing -->
+  {
+    writing.length > 0 && (
+      <section class="section" style="padding-top: 0">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2 class="h2">Latest writing</h2>
+            <a class="link-more" href="/writing">
+              All writing →
+            </a>
+          </div>
+          {writing.map((item, i) => (
+            <a
+              class="reading-item reveal"
+              href={`/work/${item.slug.current}`}
+              style={`--i: ${i}`}
+            >
+              <div>
+                <h3 class="reading-item__title">{item.title}</h3>
+                {item.excerpt && <p class="reading-item__excerpt">{item.excerpt}</p>}
+              </div>
+              <span class="reading-item__year">{item.year}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Closing CTA -->
+  <section class="section" style="padding-top: 0; text-align: center">
+    <div class="container">
+      <h2 class="h2 reveal" style="max-width: 20ch; margin-inline: auto">
+        Have something in mind?
+      </h2>
+      <p class="lead reveal" style="margin: 1.4rem auto 0; --i: 1">
+        {settings?.available === false
+          ? 'Currently booked up — but reach out anyway.'
+          : 'I take on a limited number of projects each season.'}
+      </p>
+      <div class="reveal" style="--i: 2; margin-top: 2.2rem">
+        {settings?.email ? (
+          <a class="btn" href={`mailto:${settings.email}`}>
+            Start a project
+          </a>
+        ) : (
+          <a class="btn" href="/about">
+            About me
+          </a>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>

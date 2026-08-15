@@ -1,0 +1,163 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getCategories, getProjects, getSettings } from '../lib/sanity';
+import { getYears } from '../lib/utils';
+
+const settings = await getSettings();
+const categories = await getCategories();
+const projects = await getProjects();
+const years = getYears(projects);
+---
+
+<Layout title="Work" settings={settings}>
+  <section class="section" style="padding-bottom: 0">
+    <div class="container">
+      <p class="meta reveal" style="--i: 0">
+        <strong>{projects.length} projects</strong> · {categories.length} disciplines
+      </p>
+      <h1 class="display reveal" style="--i: 1; margin-top: 1.2rem">Work</h1>
+      <p class="lead reveal" style="--i: 2; margin-top: 1.6rem; max-width: 46ch">
+        Everything, filed two ways — by skill and by year.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: clamp(2.5rem, 5vw, 4rem)">
+    <div class="container">
+      <div class="filters reveal" style="--i: 0" role="group" aria-label="Filter projects">
+        <div class="filters__group">
+          <span class="meta" style="margin-right: 0.4rem">Skill</span>
+          <button class="chip" type="button" data-filter="category" data-value="all" aria-pressed="true">
+            All
+          </button>
+          {categories.map((c) => (
+            <button class="chip" type="button" data-filter="category" data-value={c.slug.current} aria-pressed="false">
+              {c.name}
+            </button>
+          ))}
+        </div>
+        <span class="filters__sep" aria-hidden="true"></span>
+        <div class="filters__group">
+          <span class="meta" style="margin-right: 0.4rem">Year</span>
+          <button class="chip" type="button" data-filter="year" data-value="all" aria-pressed="true">
+            All
+          </button>
+          {years.map((y) => (
+            <button class="chip" type="button" data-filter="year" data-value={y} aria-pressed="false">
+              {y}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <p class="meta mt-m" data-count aria-live="polite"></p>
+
+      {
+        projects.length > 0 ? (
+          <div class="grid grid--2 mt-l">
+            {projects.map((project, i) => (
+              <ProjectCard project={project} index={Math.min(i, 5)} />
+            ))}
+          </div>
+        ) : (
+          <div class="setup mt-l">
+            <h2 class="h3">No projects yet</h2>
+            <p class="lead" style="margin-top: 1rem; font-size: 1rem">
+              Connect Sanity and add a project to get started.
+            </p>
+          </div>
+        )
+      }
+
+      <p class="mt-l text-center" data-empty style="display: none; color: var(--ink-2);">
+        No projects match these filters.
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  interface FilterCard extends HTMLElement {
+    _show?: boolean;
+  }
+  type FilterGroup = 'category' | 'year';
+
+  const cards = Array.from(document.querySelectorAll<FilterCard>('.filter-result'));
+  const chips = Array.from(document.querySelectorAll<HTMLElement>('.chip[data-filter]'));
+  const countEl = document.querySelector<HTMLElement>('[data-count]');
+  const emptyEl = document.querySelector<HTMLElement>('[data-empty]');
+
+  const state: Record<FilterGroup, string> = { category: 'all', year: 'all' };
+
+  function matchesCard(card: FilterCard) {
+    const catOk = state.category === 'all' || card.dataset.category === state.category;
+    const yearOk = state.year === 'all' || card.dataset.year === state.year;
+    return catOk && yearOk;
+  }
+
+  function readURL() {
+    const p = new URLSearchParams(location.search);
+    state.category = p.get('category') || 'all';
+    state.year = p.get('year') || 'all';
+  }
+
+  function render(animate = false) {
+    chips.forEach((chip) => {
+      const group = chip.dataset.filter as FilterGroup;
+      const active = chip.dataset.value === state[group];
+      chip.classList.toggle('is-active', active);
+      chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
+    let shown = 0;
+    cards.forEach((card) => {
+      const show = matchesCard(card);
+      card._show = show;
+      if (show) {
+        card.classList.remove('is-hidden');
+        if (animate) {
+          card.classList.add('is-fading');
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => card.classList.remove('is-fading')),
+          );
+        }
+        shown++;
+      } else if (animate) {
+        card.classList.add('is-fading');
+        setTimeout(() => {
+          if (!card._show) card.classList.add('is-hidden');
+        }, 220);
+      } else {
+        card.classList.add('is-hidden');
+      }
+    });
+
+    if (countEl) {
+      countEl.textContent = `${shown} ${shown === 1 ? 'project' : 'projects'} shown`;
+    }
+    if (emptyEl) {
+      emptyEl.style.display = shown === 0 ? '' : 'none';
+    }
+  }
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const group = chip.dataset.filter as FilterGroup;
+      const value = chip.dataset.value ?? 'all';
+      if (state[group] === value) return;
+      state[group] = value;
+      const url = new URL(location.href);
+      if (value === 'all') {
+        url.searchParams.delete(group);
+      } else {
+        url.searchParams.set(group, value);
+      }
+      history.replaceState(null, '', url);
+      render(true);
+    });
+  });
+
+  readURL();
+  render(false);
+</script>

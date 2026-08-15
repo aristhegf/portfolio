@@ -1,0 +1,20 @@
+---
+import { PortableText } from '@portabletext/astro';
+import Link from './richtext/Link.astro';
+import RichImage from './richtext/RichImage.astro';
+
+interface Props {
+  value?: any;
+}
+
+const { value } = Astro.props;
+
+const components = {
+  mark: { link: Link },
+  type: { image: RichImage },
+};
+---
+
+<div class="prose">
+  <PortableText value={value} components={components} />
+</div>
