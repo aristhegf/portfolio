@@ -1,0 +1,147 @@
+---
+// Ambient UI effects, mounted once on every page:
+//  · OKC-style glassy cursor — a frosted circle with a contextual label that
+//    replaces the system cursor over [data-cursor] elements (project cards,
+//    index rows, skill cells…)
+//  · magnetic pull on buttons
+//  · film-grain texture overlay for a printed, tactile feel
+//  · a 1px accent scroll-progress hairline under the nav
+// Everything is gated to fine pointers and to users who haven't asked for
+// reduced motion, and all of it is strictly decorative. The init re-runs on
+// every view transition via astro:page-load, tearing down the previous
+// run's window/document listeners first.
+---
+
+<div class="site-cursor" aria-hidden="true">
+  <span class="site-cursor__text"></span>
+</div>
+
+<div class="grain" aria-hidden="true"></div>
+
+<div class="scroll-progress" aria-hidden="true"></div>
+
+<script>
+  const initEffects = () => {
+    // Tear down the previous run's window/document listeners (view
+    // transitions fire astro:page-load on every navigation).
+    if (window.__fxCleanup) {
+      for (const [t, type, fn, opts] of window.__fxCleanup) {
+        t.removeEventListener(type, fn, opts);
+      }
+      window.__fxCleanup = null;
+    }
+    const cleanup: Array<
+      [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined]
+    > = [];
+    window.__fxCleanup = cleanup;
+    const on = (
+      t: EventTarget,
+      type: string,
+      fn: EventListenerOrEventListenerObject,
+      opts?: boolean | AddEventListenerOptions,
+    ) => {
+      t.addEventListener(type, fn, opts);
+      cleanup.push([t, type, fn, opts]);
+    };
+
+    const finePointer = matchMedia('(pointer: fine)').matches;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---------- Glassy cursor over [data-cursor] elements ---------- */
+    if (finePointer && !reduceMotion) {
+      const el = document.querySelector<HTMLElement>('.site-cursor');
+      if (el) {
+        const textEl = el.querySelector<HTMLElement>('.site-cursor__text');
+        let active = false;
+
+        const hide = () => {
+          active = false;
+          el.classList.remove('is-active', 'is-over-case');
+          if (textEl) textEl.textContent = '';
+          document.body.style.cursor = '';
+        };
+
+        on(document, 'mousemove', (e: MouseEvent) => {
+          el.style.left = `${e.clientX}px`;
+          el.style.top = `${e.clientY}px`;
+        });
+
+        on(document, 'mouseover', (e: MouseEvent) => {
+          const target = (e.target as Element).closest('[data-cursor]');
+          if (!target) return;
+          if (textEl) textEl.textContent = target.getAttribute('data-cursor-text') || '';
+          active = true;
+          el.classList.toggle('is-over-case', Boolean(target.closest('.card')));
+          el.classList.add('is-active');
+        });
+
+        on(document, 'mouseout', (e: MouseEvent) => {
+          if (!active) return;
+          const from = (e.target as Element).closest?.('[data-cursor]');
+          if (!from) return;
+          const to = (e.relatedTarget as Element | null)?.closest?.('[data-cursor]');
+          if (to) return;
+          hide();
+        });
+
+        on(window, 'blur', hide);
+        on(document, 'visibilitychange', () => {
+          if (document.hidden) hide();
+        });
+      }
+    }
+
+    /* ---------- Magnetic buttons ---------- */
+    if (finePointer && !reduceMotion) {
+      const magnets = Array.from(document.querySelectorAll<HTMLElement>('.btn'));
+      magnets.forEach((el) => {
+        const STRENGTH = 0.18;
+        let leaveTimer = 0;
+
+        const onMove = (e: MouseEvent) => {
+          const r = el.getBoundingClientRect();
+          const x = (e.clientX - (r.left + r.width / 2)) * STRENGTH;
+          const y = (e.clientY - (r.top + r.height / 2)) * STRENGTH;
+          el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        };
+
+        const onLeave = () => {
+          window.clearTimeout(leaveTimer);
+          el.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+          el.style.transform = '';
+          leaveTimer = window.setTimeout(() => {
+            el.style.transition = '';
+          }, 500);
+        };
+
+        el.addEventListener('mousemove', onMove);
+        el.addEventListener('mouseleave', onLeave);
+      });
+    }
+
+    /* ---------- Scroll progress hairline ---------- */
+    if (finePointer) {
+      const bar = document.querySelector<HTMLElement>('.scroll-progress');
+      if (bar) {
+        let ticking = false;
+        const update = () => {
+          const max = document.documentElement.scrollHeight - window.innerHeight;
+          const p = max > 0 ? window.scrollY / max : 0;
+          bar.style.transform = `scaleX(${p})`;
+          ticking = false;
+        };
+        const request = () => {
+          if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(update);
+          }
+        };
+        on(window, 'scroll', request, { passive: true });
+        on(window, 'resize', request);
+        update();
+      }
+    }
+  };
+
+  document.addEventListener('astro:page-load', initEffects);
+</script>

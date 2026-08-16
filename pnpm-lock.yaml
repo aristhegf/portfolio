@@ -13,7 +13,7 @@ importers:
         version: 6.0.2(@types/node@26.2.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1)(tsx@4.23.12)(yaml@2.9.0)
       '@astrojs/vercel':
         specifier: ^11.0.5
-        version: 11.0.5(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))(react@19.2.8)(rollup@4.62.4)(supports-color@8.1.1)(ws@8.21.0)
+        version: 11.0.5(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))(react@19.2.8)(rollup@4.62.4)(supports-color@8.1.1)(ws@8.21.0)
       '@fontsource-variable/newsreader':
         specifier: ^5.3.0
         version: 5.3.0
@@ -25,10 +25,10 @@ importers:
         version: 5.3.0
       '@portabletext/astro':
         specifier: ^0.1.0
-        version: 0.1.0(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 0.1.0(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
       '@sanity/astro':
         specifier: ^3.5.0
-        version: 3.5.0(1926f7fd6ce391ca3a1ca99a34950b59)
+        version: 3.5.0(76b5d05687a59108ee54b29cd4b4765c)
       '@sanity/client':
         specifier: ^7.14.1
         version: 7.26.2
@@ -38,9 +38,12 @@ importers:
       '@sanity/image-url':
         specifier: ^1.1.0
         version: 1.2.0
+      '@upstash/redis':
+        specifier: ^1.38.2
+        version: 1.38.2
       astro:
         specifier: ^7.2.1
-        version: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -2741,6 +2744,9 @@ packages:
   '@ungap/structured-clone@1.3.3':
     resolution: {integrity: sha512-60YRaenCQcVjYEKOcG824+DRGGIQ3VKErcBoAEDJZz5bKIs2ZG+X/H9Nk+Q6EVkwJk5QNApxbrc5QtBSwtrXAg==}
 
+  '@upstash/redis@1.38.2':
+    resolution: {integrity: sha512-RZ+JaRCVIS+ZTGnjOnDMr+/0aqDxsBb5rV6aW+Pys4SGELwr5lwE3UbLHRCHqMQ5Ulxj0b/CFBHfbmE175Otog==}
+
   '@vercel/analytics@1.6.1':
     resolution: {integrity: sha512-oH9He/bEM+6oKlv3chWuOOcp8Y6fo6/PSro8hEkgCW3pu9/OiCXiUpRUogDh3Fs3LH2sosDrx8CxeOLBEE+afg==}
     peerDependencies:
@@ -2791,6 +2797,11 @@ packages:
         optional: true
       ws:
         optional: true
+
+  '@vercel/kv@3.0.0':
+    resolution: {integrity: sha512-pKT8fRnfyYk2MgvyB6fn6ipJPCdfZwiKDdw7vB+HL50rjboEBHDVBEcnwfkEpVSp2AjNtoaOUH7zG+bVC/rvSg==}
+    engines: {node: '>=14.6'}
+    deprecated: 'Vercel KV is deprecated. If you had an existing KV store, it should have moved to Upstash Redis which you will see under Vercel Integrations. For new projects, install a Redis integration from Vercel Marketplace: https://vercel.com/marketplace?category=storage&search=redis'
 
   '@vercel/nft@1.10.2':
     resolution: {integrity: sha512-w+WyX5Ulmj4dtTZrxaulqrjaLZHSbnPzx75SJsTNYmotKsqn1JlLnDJa+lz5hn90HJofhl/2MAtw0mCrgM3qYw==}
@@ -6156,14 +6167,14 @@ snapshots:
       is-docker: 4.0.0
       package-manager-detector: 1.8.0
 
-  '@astrojs/vercel@11.0.5(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))(react@19.2.8)(rollup@4.62.4)(supports-color@8.1.1)(ws@8.21.0)':
+  '@astrojs/vercel@11.0.5(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))(react@19.2.8)(rollup@4.62.4)(supports-color@8.1.1)(ws@8.21.0)':
     dependencies:
       '@astrojs/internal-helpers': 0.10.2
       '@vercel/analytics': 1.6.1(react@19.2.8)
       '@vercel/functions': 3.9.3(ws@8.21.0)
       '@vercel/nft': 1.10.2(rollup@4.62.4)(supports-color@8.1.1)
       '@vercel/routing-utils': 5.3.3
-      astro: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      astro: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
       esbuild: 0.28.2
       tinyglobby: 0.2.17
     transitivePeerDependencies:
@@ -7856,11 +7867,11 @@ snapshots:
       '@pnpm/network.ca-file': 1.0.2
       config-chain: 1.1.13
 
-  '@portabletext/astro@0.1.0(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))':
+  '@portabletext/astro@0.1.0(astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))':
     dependencies:
       '@portabletext/toolkit': 6.0.0
       '@portabletext/types': 4.0.2
-      astro: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      astro: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
 
   '@portabletext/editor@7.10.18(@types/react@19.2.18)(react@19.2.8)(supports-color@8.1.1)':
     dependencies:
@@ -8152,11 +8163,11 @@ snapshots:
 
   '@sanity/asset-utils@2.3.0': {}
 
-  '@sanity/astro@3.5.0(1926f7fd6ce391ca3a1ca99a34950b59)':
+  '@sanity/astro@3.5.0(76b5d05687a59108ee54b29cd4b4765c)':
     dependencies:
       '@sanity/client': 7.26.2
       '@sanity/visual-editing': 5.7.3(@sanity/client@7.26.2)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(styled-components@6.5.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@5.9.3)
-      astro: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      astro: 7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
       history: 5.3.0
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
@@ -9018,6 +9029,10 @@ snapshots:
 
   '@ungap/structured-clone@1.3.3': {}
 
+  '@upstash/redis@1.38.2':
+    dependencies:
+      uncrypto: 0.1.3
+
   '@vercel/analytics@1.6.1(react@19.2.8)':
     optionalDependencies:
       react: 19.2.8
@@ -9044,6 +9059,11 @@ snapshots:
       '@vercel/oidc': 3.8.4
     optionalDependencies:
       ws: 8.21.0
+
+  '@vercel/kv@3.0.0':
+    dependencies:
+      '@upstash/redis': 1.38.2
+    optional: true
 
   '@vercel/nft@1.10.2(rollup@4.62.4)(supports-color@8.1.1)':
     dependencies:
@@ -9250,7 +9270,7 @@ snapshots:
 
   arrify@3.0.0: {}
 
-  astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@vercel/functions@3.9.3(ws@8.21.0))(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0):
+  astro@7.2.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@26.2.0)(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0):
     dependencies:
       '@astrojs/compiler-rs': 0.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)
       '@astrojs/internal-helpers': 0.10.2
@@ -9298,7 +9318,7 @@ snapshots:
       tinyglobby: 0.2.17
       ultrahtml: 1.7.0
       unifont: 0.7.5
-      unstorage: 1.17.5(@vercel/functions@3.9.3(ws@8.21.0))
+      unstorage: 1.17.5(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0)
       vite: 8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
       vitefu: 1.1.3(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
       xxhash-wasm: 1.1.0
@@ -11841,7 +11861,7 @@ snapshots:
 
   universal-user-agent@7.0.3: {}
 
-  unstorage@1.17.5(@vercel/functions@3.9.3(ws@8.21.0)):
+  unstorage@1.17.5(@upstash/redis@1.38.2)(@vercel/functions@3.9.3(ws@8.21.0))(@vercel/kv@3.0.0):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -11852,7 +11872,9 @@ snapshots:
       ofetch: 1.5.1
       ufo: 1.6.4
     optionalDependencies:
+      '@upstash/redis': 1.38.2
       '@vercel/functions': 3.9.3(ws@8.21.0)
+      '@vercel/kv': 3.0.0
 
   update-browserslist-db@1.3.1(browserslist@4.28.8):
     dependencies:

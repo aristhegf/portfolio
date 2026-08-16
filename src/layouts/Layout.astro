@@ -1,12 +1,11 @@
 ---
-import '@fontsource-variable/newsreader';
-import '@fontsource-variable/space-grotesk';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import Starfield from '../components/Starfield.astro';
+import Effects from '../components/Effects.astro';
+import { ClientRouter } from 'astro:transitions';
 import { VisualEditing } from '@sanity/astro/visual-editing';
 import { getSettings, type Settings } from '../lib/sanity';
 
@@ -52,22 +51,10 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
-    <script is:inline>
-      /* Set theme before paint to avoid a flash of the wrong mode. */
-      (function () {
-        var stored = null;
-        try {
-          stored = localStorage.getItem('theme');
-        } catch (e) {}
-        var dark =
-          stored === 'dark' ||
-          (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-      })();
-    </script>
   </head>
   <body>
-    <Starfield />
+    <ClientRouter />
+    <Effects />
     <Nav settings={settings} />
     <main>
       <slot />
@@ -75,36 +62,41 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
     <Footer settings={settings} />
 
     <script>
-      /* Scroll reveals for any .reveal element present at load. */
-      const els = document.querySelectorAll('.reveal');
-      if ('IntersectionObserver' in window && els.length) {
-        const io = new IntersectionObserver(
-          (entries) => {
-            for (const entry of entries) {
-              if (entry.isIntersecting) {
-                const el = entry.target as HTMLElement;
-                // Apply the stagger inline so it wins over any competing
-                // `transition` shorthand (e.g. .filter-result on /work), then
-                // clear it once the reveal finishes so later transitions —
-                // like the work filters' fades — aren't delayed.
-                const i = el.style.getPropertyValue('--i').trim();
-                if (i) {
-                  el.style.transitionDelay = `calc(${i} * 70ms)`;
-                  const clearDelay = () => el.style.removeProperty('transition-delay');
-                  el.addEventListener('transitionend', clearDelay, { once: true });
-                  el.addEventListener('transitioncancel', clearDelay, { once: true });
+      /* Scroll reveals for any .reveal element. Re-runs on every view
+         transition (astro:page-load) so newly swapped elements animate. */
+      const initReveals = () => {
+        const els = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window && els.length) {
+          const io = new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                if (entry.isIntersecting) {
+                  const el = entry.target as HTMLElement;
+                  // Apply the stagger inline so it wins over any competing
+                  // `transition` shorthand (e.g. .filter-result on /work),
+                  // then clear it once the reveal finishes so later
+                  // transitions — like the work filters' fades — aren't
+                  // delayed.
+                  const i = el.style.getPropertyValue('--i').trim();
+                  if (i) {
+                    el.style.transitionDelay = `calc(${i} * 70ms)`;
+                    const clearDelay = () => el.style.removeProperty('transition-delay');
+                    el.addEventListener('transitionend', clearDelay, { once: true });
+                    el.addEventListener('transitioncancel', clearDelay, { once: true });
+                  }
+                  el.classList.add('is-visible');
+                  io.unobserve(el);
                 }
-                el.classList.add('is-visible');
-                io.unobserve(el);
               }
-            }
-          },
-          { threshold: 0.1, rootMargin: '0px 0px -8% 0px' },
-        );
-        els.forEach((el) => io.observe(el));
-      } else {
-        els.forEach((el) => el.classList.add('is-visible'));
-      }
+            },
+            { threshold: 0.1, rootMargin: '0px 0px -8% 0px' },
+          );
+          els.forEach((el) => io.observe(el));
+        } else {
+          els.forEach((el) => el.classList.add('is-visible'));
+        }
+      };
+      document.addEventListener('astro:page-load', initReveals);
     </script>
     <noscript>
       <style>

@@ -68,6 +68,7 @@ export default defineConfig({
             S.divider(),
             S.documentTypeListItem('project').title('Projects'),
             S.documentTypeListItem('category').title('Skills / Categories'),
+            S.documentTypeListItem('submission').title('Inquiries'),
           ]),
     }),
   ],

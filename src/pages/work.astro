@@ -1,6 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import BlobButton from '../components/BlobButton.astro';
+import PageLabel from '../components/PageLabel.astro';
 import { getCategories, getProjects, getSettings } from '../lib/sanity';
 import { getYears } from '../lib/utils';
 
@@ -13,11 +15,12 @@ const years = getYears(projects);
 <Layout title="Work" settings={settings}>
   <section class="section" style="padding-bottom: 0">
     <div class="container">
-      <p class="meta reveal" style="--i: 0">
+      <PageLabel>work</PageLabel>
+      <p class="meta reveal" style="--i: 1">
         <strong>{projects.length} projects</strong> · {categories.length} disciplines
       </p>
-      <h1 class="display reveal" style="--i: 1; margin-top: 1.2rem">Work</h1>
-      <p class="lead reveal" style="--i: 2; margin-top: 1.6rem; max-width: 46ch">
+      <h1 class="display reveal" style="--i: 2; margin-top: 1.2rem">Work</h1>
+      <p class="lead reveal" style="--i: 3; margin-top: 1.6rem; max-width: 46ch">
         Everything, filed two ways — by skill and by year.
       </p>
     </div>
@@ -75,6 +78,23 @@ const years = getYears(projects);
       </p>
     </div>
   </section>
+
+  <section class="section" style="padding-top: 0; text-align: center">
+    <div class="container">
+      <h2 class="h2 reveal" style="max-width: 20ch; margin-inline: auto">
+        Like what you see?
+      </h2>
+      <div class="reveal" style="--i: 1; margin-top: 2.4rem">
+        {settings?.email ? (
+          <BlobButton href="/planner" label="start a project" />
+        ) : (
+          <a class="btn" href="/about">
+            About me
+          </a>
+        )}
+      </div>
+    </div>
+  </section>
 </Layout>
 
 <script>
@@ -83,6 +103,9 @@ const years = getYears(projects);
   }
   type FilterGroup = 'category' | 'year';
 
+  /* Re-runs on every view transition (astro:page-load) so the chips and
+     cards from the freshly swapped page are wired up. */
+  const initFilters = () => {
   const cards = Array.from(document.querySelectorAll<FilterCard>('.filter-result'));
   const chips = Array.from(document.querySelectorAll<HTMLElement>('.chip[data-filter]'));
   const countEl = document.querySelector<HTMLElement>('[data-count]');
@@ -160,4 +183,7 @@ const years = getYears(projects);
 
   readURL();
   render(false);
+  };
+
+  document.addEventListener('astro:page-load', initFilters);
 </script>

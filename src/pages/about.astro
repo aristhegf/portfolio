@@ -1,68 +1,133 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Prose from '../components/Prose.astro';
+import PageLabel from '../components/PageLabel.astro';
 import { getSettings, urlFor } from '../lib/sanity';
 
 const settings = await getSettings();
-const socials = settings?.socials || [];
-const profile = settings?.profileImage ? urlFor(settings.profileImage, 900) : undefined;
+const profile = settings?.profileImage ? urlFor(settings.profileImage, 300) : undefined;
+
+// Strip stega/zero-width characters the draft-preview encoding can inject.
+const strip = (s: string) => (s || '').replace(/[\u200B-\u200F\u2060\u2061\u2062\u2063\uFEFF]/g, '');
+const name = strip(settings?.name || 'Portfolio');
+const role = strip(settings?.role || '');
+
+// Facts values, pre-split into characters (stripped of the zero-width
+// stega encoding) so each one can rise in word-style.
+const facts = (settings?.facts ?? []).map((f) => ({
+  ...f,
+  value: strip(f.value),
+  chars: Array.from(strip(f.value)),
+}));
 ---
 
 <Layout title="About" description={settings?.tagline} settings={settings}>
-  <section class="section">
-    <div class="container">
-      <p class="meta reveal" style="--i: 0">About</p>
-      <h1 class="display reveal" style="--i: 1; margin-top: 1.2rem; max-width: 18ch">
-        {settings?.name || 'Portfolio'}
-      </h1>
+  {
+    settings?.bio && (
+      <section class="about-story section" aria-label="My story">
+        <div class="container about-story__inner">
+          <PageLabel>about</PageLabel>
+          <Prose value={settings.bio} reveal />
 
-      {profile && (
-        <div class="profile reveal" style="--i: 1">
-          <img src={profile} alt={settings?.name ? `Portrait of ${settings.name}` : 'Portrait'} />
+          {/* The writeup ends with the profile + name, exactly like OKC's
+              manifesto signature: circular portrait, name, role below. */}
+          {(profile || name) && (
+            <div class="about-story__sign reveal" style="--i: 0">
+              {profile && <img src={profile} alt={`Portrait of ${name}`} />}
+              {name && (
+                <p>
+                  <span>{name}</span>
+                  {role && <span class="about-story__role">{role}</span>}
+                </p>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </section>
+    )
+  }
 
-      <div class="detail-meta reveal" style="--i: 2; margin-top: 2.4rem">
-        {settings?.location && (
-          <span class="meta"><strong>Based in</strong> — {settings.location}</span>
-        )}
-        <span class="meta">
-          <strong>Availability</strong> —{' '}
-          {settings?.available === false ? 'Booked' : 'Open to new work'}
-        </span>
-        {settings?.email && (
-          <span class="meta"><strong>Contact</strong> — {settings.email}</span>
-        )}
-      </div>
-
-      {
-        settings?.bio && (
-          <div class="mt-l reveal" style="--i: 2">
-            <Prose value={settings.bio} />
+  {
+    facts.length > 0 && (
+      <section class="about-facts" aria-labelledby="facts-title">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2 class="h2" id="facts-title">facts</h2>
           </div>
-        )
-      }
-
-      {socials.length > 0 && (
-        <div class="mt-l reveal" style="--i: 3">
-          <p class="meta" style="margin-bottom: 1rem">Elsewhere</p>
-          <div class="filters">
-            {socials.map((s) => (
-              <a class="chip" href={s.url} target="_blank" rel="noopener noreferrer">
-                {s.label}
-              </a>
+          <div class="facts-grid" role="list">
+            {facts.map((f, i) => (
+              <div class="facts-cell reveal" style={`--i: ${i}`} role="listitem">
+                <div class="facts-card">
+                  {/* caption is its own reveal so it fades up just after
+                      the value's word-rise finishes */}
+                  <p class="facts-card__value" aria-label={f.value}>
+                    {
+                      f.chars.map((ch, wi) => (
+                        <span class="word" style={`--wi: ${wi}`} aria-hidden="true">
+                          <span class="word__inner">{ch === ' ' ? '\u00A0' : ch}</span>
+                        </span>
+                      ))
+                    }
+                  </p>
+                  <p class="facts-card__text reveal">{f.text}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      )}
-
-      {settings?.email && (
-        <div class="mt-l reveal" style="--i: 4">
-          <a class="btn" href={`mailto:${settings.email}`}>
-            Get in touch
-          </a>
-        </div>
-      )}
-    </div>
-  </section>
+      </section>
+    )
+  }
 </Layout>
+
+<script>
+  /* Subtle portrait parallax — the photo drifts a few pixels as it passes
+     through the viewport, matching the site's motion language. */
+  const initParallax = () => {
+    if (window.__aboutParallaxCleanup) {
+      for (const [t, type, fn, opts] of window.__aboutParallaxCleanup) {
+        t.removeEventListener(type, fn, opts);
+      }
+      window.__aboutParallaxCleanup = null;
+    }
+    const img = document.querySelector<HTMLImageElement>('.about-story__sign img');
+    if (!img || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const listeners: Array<
+      [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined]
+    > = [];
+    window.__aboutParallaxCleanup = listeners;
+    const on = (
+      t: EventTarget,
+      type: string,
+      fn: EventListenerOrEventListenerObject,
+      opts?: boolean | AddEventListenerOptions,
+    ) => {
+      t.addEventListener(type, fn, opts);
+      listeners.push([t, type, fn, opts]);
+    };
+
+    let ticking = false;
+    const update = () => {
+      const rect = img.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // 0 = fully below the viewport, 1 = fully above; the photo drifts
+      // ±12px across that passage.
+      const p = Math.min(1, Math.max(0, (rect.top + rect.height / 2) / vh));
+      const drift = (p - 0.5) * 24;
+      img.style.transform = `translateY(${drift.toFixed(2)}px)`;
+      ticking = false;
+    };
+
+    on(window, 'scroll', () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    }, { passive: true });
+    on(window, 'resize', update);
+    update();
+  };
+
+  document.addEventListener('astro:page-load', initParallax);
+</script>

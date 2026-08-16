@@ -3,12 +3,38 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Not found" noindex>
-  <section class="section" style="min-height: 60vh; display: grid; place-items: center">
+  <section class="section" style="min-height: 62vh; display: grid; place-items: center">
     <div class="container text-center">
       <p class="meta">Error 404</p>
       <h1 class="display" style="margin-top: 1.2rem">This page went missing.</h1>
       <p class="lead" style="margin: 1.6rem auto 0">Whatever you're after isn't here anymore.</p>
-      <div style="margin-top: 2.2rem">
+
+      <!-- The number 404, drawn as a constellation that draws itself in. -->
+      <svg class="constellation" viewBox="0 0 340 160" aria-hidden="true">
+        <path d="M30 112 L30 44 L78 112 L78 44" />
+        <path d="M116 44 H172 V112 H116 Z" />
+        <path d="M222 112 L222 44 L270 112 L270 44" />
+
+        <circle cx="30" cy="44" r="2.5" />
+        <circle cx="30" cy="112" r="2.5" />
+        <circle cx="78" cy="44" r="2.5" />
+        <circle cx="78" cy="112" r="2.5" />
+        <circle cx="54" cy="78" r="1.8" />
+
+        <circle cx="116" cy="44" r="2.5" />
+        <circle cx="172" cy="44" r="2.5" />
+        <circle cx="172" cy="112" r="2.5" />
+        <circle cx="116" cy="112" r="2.5" />
+        <circle cx="144" cy="78" r="1.8" />
+
+        <circle cx="222" cy="44" r="2.5" />
+        <circle cx="222" cy="112" r="2.5" />
+        <circle cx="270" cy="44" r="2.5" />
+        <circle cx="270" cy="112" r="2.5" />
+        <circle cx="246" cy="78" r="1.8" />
+      </svg>
+
+      <div style="margin-top: 2.4rem">
         <a class="btn" href="/">Back home</a>
       </div>
     </div>

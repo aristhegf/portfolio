@@ -31,11 +31,46 @@ export default defineType({
       description: 'Big serif headline on the home page.',
     }),
     defineField({
+      name: 'heroQuotes',
+      title: 'Hero quotes',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description:
+        'Rotating quotes on the home page hero — one is shown every 3 seconds. If empty, defaults are used.',
+    }),
+    defineField({
       name: 'bio',
       title: 'Bio',
       type: 'array',
       of: [{ type: 'block' }],
-      description: 'Shown on the About page.',
+      description: 'Your story on the About page, set in justified text.',
+    }),
+    defineField({
+      name: 'facts',
+      title: 'Facts (About page)',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({
+              name: 'value',
+              title: 'Value',
+              type: 'string',
+              description: 'The big number — e.g. 10+, 40+, 3',
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: 'text',
+              title: 'Text',
+              type: 'string',
+              description: 'What the number stands for — e.g. projects shipped',
+              validation: (rule) => rule.required(),
+            }),
+          ],
+        },
+      ],
+      description: 'The facts row between the manifesto and the story on the About page.',
     }),
     defineField({
       name: 'email',
@@ -46,6 +81,13 @@ export default defineType({
           if (!value) return true;
           return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? true : 'Enter a valid email address.';
         }),
+    }),
+    defineField({
+      name: 'phone',
+      title: 'Phone / WhatsApp',
+      type: 'string',
+      description:
+        'Shown in the contact sections with call and WhatsApp links — e.g. "+234 916 129 4881".',
     }),
     defineField({
       name: 'location',

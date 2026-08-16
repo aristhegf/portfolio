@@ -108,10 +108,13 @@ export type Project = {
 export type Settings = {
   name?: string;
   tagline?: string;
+  heroQuotes?: string[];
   role?: string;
   profileImage?: unknown;
   bio?: unknown;
+  facts?: { value: string; text: string }[];
   email?: string;
+  phone?: string;
   location?: string;
   available?: boolean;
   footerNote?: string;

@@ -1,0 +1,198 @@
+---
+// OKC-style liquid blob button: a circular glass disc with a canvas-drawn
+// blob that stretches toward the cursor, an accent fill on hover, and a
+// white dot cursor while the pointer is inside.
+interface Props {
+  href: string;
+  label: string;
+  size?: number; // css px diameter
+}
+
+const { href, label } = Astro.props;
+const size = Astro.props.size ?? 150;
+const canvas = size + 60; // canvas overhangs the disc
+---
+
+<a class="blub-button" data-blob href={href} style={`width:${size}px;height:${size}px;`}>
+  <canvas
+    class="blub-canvas"
+    aria-hidden="true"
+    style={`width:${canvas}px;height:${canvas}px;left:${(size - canvas) / 2}px;top:${(size - canvas) / 2}px;`}
+  ></canvas>
+  <span class="blub-button__text">{label}</span>
+  <span class="blub-cursor" aria-hidden="true"></span>
+</a>
+
+<script>
+  /* Liquid blob physics, ported from OKC Media's blob button. Attaches to
+     every [data-blob] element. The init re-runs on every view transition
+     via astro:page-load, tearing down the previous run's document listeners
+     and animation loops first. Coarse pointers and reduced motion are
+     skipped (the button still works as a plain circular link). */
+  const initBlob = () => {
+    if (window.__blobCleanup) {
+      for (const [t, type, fn] of window.__blobCleanup) t.removeEventListener(type, fn);
+      if (window.__blobRafs) {
+        for (const id of window.__blobRafs) cancelAnimationFrame(id);
+      }
+      window.__blobCleanup = null;
+      window.__blobRafs = null;
+      document.body.style.cursor = '';
+    }
+    const cleanup: Array<[EventTarget, string, EventListenerOrEventListenerObject]> = [];
+    window.__blobCleanup = cleanup;
+    const on = (t: EventTarget, type: string, fn: EventListenerOrEventListenerObject) => {
+      t.addEventListener(type, fn);
+      cleanup.push([t, type, fn]);
+    };
+    const rafs: number[] = [];
+    window.__blobRafs = rafs;
+
+    const finePointer = matchMedia('(pointer: fine)').matches;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!finePointer || reduceMotion) {
+      // The button still works as a plain circular link.
+    } else {
+    const buttons = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-blob]'));
+    const ACCENT = [240, 112, 119]; // --accent
+
+    const parseRgb = (value: string): number[] | null => {
+      const m = String(value).match(/\d+(?:\.\d+)?/g);
+      if (!m || m.length < 3) return null;
+      return m.slice(0, 3).map(Number);
+    };
+
+    buttons.forEach((btn) => {
+      const canvas = btn.querySelector<HTMLCanvasElement>('.blub-canvas');
+      const cursor = btn.querySelector<HTMLElement>('.blub-cursor');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const cssSize = canvas.offsetWidth;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = cssSize * dpr;
+      canvas.height = cssSize * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const width = cssSize;
+      const height = cssSize;
+      const baseCenter = { x: width / 2, y: height / 2 };
+      const radius = width * 0.33;
+
+      const numPoints = 32;
+      const points = Array.from({ length: numPoints }, (_, i) => {
+        const angle = (i / numPoints) * Math.PI * 2;
+        return {
+          angle,
+          x: baseCenter.x + radius * Math.cos(angle),
+          y: baseCenter.y + radius * Math.sin(angle),
+          vx: 0,
+          vy: 0,
+        };
+      });
+
+      let mouse = { x: -9999, y: -9999, active: false };
+      const onMouseMove = (e: MouseEvent) => {
+        mouse.active = true;
+        if (cursor) {
+          const br = btn.getBoundingClientRect();
+          cursor.style.left = `${e.clientX - br.left}px`;
+          cursor.style.top = `${e.clientY - br.top}px`;
+        }
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        mouse.x = ((e.clientX - rect.left) * width) / rect.width;
+        mouse.y = ((e.clientY - rect.top) * height) / rect.height;
+      };
+      on(document, 'mousemove', onMouseMove);
+
+      const maxDist = 300;
+      const centerPull = 0.01;
+      const forceScale = 0.25;
+      const attractionMultiplier = 0.05;
+      const spring = 0.05;
+      const damping = 0.6;
+      let hoverProgress = 0;
+
+      const animate = () => {
+        ctx.clearRect(0, 0, width, height);
+
+        let currentCenter = { x: baseCenter.x, y: baseCenter.y };
+        if (mouse.active) {
+          currentCenter = {
+            x: baseCenter.x + (mouse.x - baseCenter.x) * centerPull,
+            y: baseCenter.y + (mouse.y - baseCenter.y) * centerPull,
+          };
+        }
+        const distToBlob = Math.hypot(mouse.x - baseCenter.x, mouse.y - baseCenter.y);
+        const targetHover = mouse.active && distToBlob < maxDist ? 1 : 0;
+        hoverProgress += (targetHover - hoverProgress) * 0.08;
+
+        const cursorInside = mouse.active && distToBlob <= radius;
+        if (cursorInside) {
+          document.body.style.cursor = 'none';
+          if (cursor) cursor.style.opacity = '1';
+        } else {
+          document.body.style.cursor = '';
+          if (cursor) cursor.style.opacity = '0';
+        }
+
+        for (const p of points) {
+          const baseX = currentCenter.x + radius * Math.cos(p.angle);
+          const baseY = currentCenter.y + radius * Math.sin(p.angle);
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const dist = Math.hypot(dx, dy);
+          let force = 0;
+          if (dist < maxDist) force = (1 - dist / maxDist) * forceScale;
+          p.vx += -dx * force * attractionMultiplier;
+          p.vy += -dy * force * attractionMultiplier;
+          p.vx += (baseX - p.x) * spring;
+          p.vy += (baseY - p.y) * spring;
+          p.vx *= damping;
+          p.vy *= damping;
+          p.x += p.vx;
+          p.y += p.vy;
+        }
+
+        ctx.beginPath();
+        const first = points[0];
+        const last = points[numPoints - 1];
+        ctx.moveTo((first.x + last.x) / 2, (first.y + last.y) / 2);
+        for (let i = 0; i < numPoints; i++) {
+          const p = points[i];
+          const next = points[(i + 1) % numPoints];
+          ctx.quadraticCurveTo(p.x, p.y, (p.x + next.x) / 2, (p.y + next.y) / 2);
+        }
+        ctx.closePath();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fill();
+        if (hoverProgress > 0.01) {
+          ctx.fillStyle = `rgba(${ACCENT[0]},${ACCENT[1]},${ACCENT[2]},${hoverProgress * 0.9})`;
+          ctx.fill();
+        }
+
+        const strokeBase = parseRgb(getComputedStyle(btn).color) || [255, 255, 255];
+        const isDark = strokeBase[0] < 128;
+        const strokeAlpha = isDark ? 0.22 : 0.15;
+        const strokeColor = strokeBase.map((c, i) =>
+          Math.round(c * (1 - hoverProgress) + ACCENT[i] * hoverProgress),
+        );
+        ctx.strokeStyle = `rgba(${strokeColor[0]},${strokeColor[1]},${strokeColor[2]},${strokeAlpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        rafs.push(requestAnimationFrame(animate));
+      };
+      rafs.push(requestAnimationFrame(animate));
+    });
+    }
+  };
+
+  document.addEventListener('astro:page-load', initBlob);
+</script>

@@ -22,7 +22,7 @@ const category = project.category?.name;
   data-category={project.category?.slug.current ?? ''}
   data-year={project.year ?? ''}
 >
-  <a class="card" href={href}>
+  <a class="card" href={href} data-cursor data-cursor-text="view">
     <div class="card__media">
       {video ? (
         <video
@@ -60,7 +60,9 @@ const category = project.category?.name;
   /* Animated covers play on hover, Dribbble-style. A dead or permanently
      failing source (missing file, 403, wrong codec) falls back to the poster
      image instead of retrying forever; transient hiccups get a small retry
-     budget, and leaving the card mid-load is treated as normal, not failure. */
+     budget, and leaving the card mid-load is treated as normal, not failure.
+     Re-runs on every view transition (astro:page-load). */
+  const initCards = () => {
   const videos = document.querySelectorAll<HTMLVideoElement>('.card__video');
 
   videos.forEach((video) => {
@@ -107,4 +109,42 @@ const category = project.category?.name;
     card.addEventListener('mouseenter', tryPlay);
     card.addEventListener('mouseleave', () => video.pause());
   });
+
+  /* Gentle 3D tilt — the card leans toward the cursor. Inline transform
+     takes over while the mouse is inside, then clears so the CSS hover
+     lift resumes. Skipped for coarse pointers and reduced motion. */
+  const finePointer = matchMedia('(pointer: fine)').matches;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (finePointer && !reduceMotion) {
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('.card'));
+    cards.forEach((card) => {
+      const MAX = 4.5; // degrees
+      let raf = 0;
+
+      const tilt = (e: MouseEvent) => {
+        raf = 0;
+        const r = card.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        // Transition-free while tracking, so the lean is crisp.
+        card.style.transition = 'none';
+        card.style.transform = `perspective(900px) rotateX(${(-py * MAX).toFixed(2)}deg) rotateY(${(px * MAX).toFixed(2)}deg) translateY(-3px)`;
+      };
+      const schedule = (e: MouseEvent) => {
+        if (!raf) raf = requestAnimationFrame(() => tilt(e));
+      };
+
+      card.addEventListener('mousemove', schedule);
+      card.addEventListener('mouseleave', () => {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        // Restore the CSS transition and let the card settle back.
+        card.style.transition = '';
+        card.style.transform = '';
+      });
+    });
+  }
+  };
+
+  document.addEventListener('astro:page-load', initCards);
 </script>

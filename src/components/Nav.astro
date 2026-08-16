@@ -1,4 +1,6 @@
 ---
+import BlobButton from './BlobButton.astro';
+import ContactIcons from './ContactIcons.astro';
 import type { Settings } from '../lib/sanity';
 
 interface Props {
@@ -7,24 +9,35 @@ interface Props {
 
 const { settings } = Astro.props;
 const path = Astro.url.pathname;
+// Strip stega/zero-width characters the draft-preview encoding can inject
+// into string values — they'd otherwise explode the per-letter animation.
+const brand = (settings?.name || 'Portfolio').replace(/[\u200B-\u200F\u2060\u2061\u2062\u2063\uFEFF]/g, '');
 const links = [
-  { href: '/work', label: 'Work' },
-  { href: '/writing', label: 'Writing' },
-  { href: '/about', label: 'About' },
+  { href: '/work', label: 'work' },
+  { href: '/writing', label: 'writing' },
+  { href: '/about', label: 'about' },
 ];
 ---
 
-<header class="nav">
+<header class="nav" id="site-nav">
   <div class="container nav__inner">
-    <a class="nav__brand" href="/">
-      {settings?.name || 'Portfolio'}<span class="dot">.</span>
+    <a class="nav__brand" href="/" aria-label={brand} style={`--brand-len: ${brand.length}`}>
+      {
+        Array.from(brand).map((ch, i) => (
+          <span class="brand-letter" style={`--li: ${i}`}>
+            {ch === ' ' ? '\u00A0' : ch}
+          </span>
+        ))
+      }
+      <span class="brand-dot" aria-hidden="true">.</span>
     </a>
 
+    {/* Desktop links — on mobile they move into the overlay menu. */}
     <nav class="nav__links" aria-label="Primary">
       {
         links.map((link) => (
           <a
-            class="nav__link"
+            class="nav__link shine"
             href={link.href}
             aria-current={path.startsWith(link.href) ? 'page' : undefined}
           >
@@ -32,42 +45,150 @@ const links = [
           </a>
         ))
       }
-      <button
-        id="theme-toggle"
-        class="theme-toggle"
-        type="button"
-        aria-label="Toggle day and night mode"
-      >
-        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5" />
-          <path
-            d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          />
-        </svg>
-        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M20.2 14.5A8.6 8.6 0 0 1 9.5 3.8a8.6 8.6 0 1 0 10.7 10.7Z"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
     </nav>
+
+    {/* Hamburger — OKC's frosted circle; the header never hides on mobile
+        (CSS forces it back) so the toggle stays clickable at every scroll
+        position. Lines are pseudo-elements that rotate into an X. */}
+    <button
+      class="mobile-toggle"
+      id="mobile-toggle"
+      type="button"
+      aria-label="Open menu"
+      aria-controls="mobile-menu"
+      aria-expanded="false"
+    ></button>
+
+    {/* Spacer reserving the right edge on desktop so the links never run
+        under the fixed talk-to-us button. */}
+    <div class="nav__controls" aria-hidden="true"></div>
   </div>
 </header>
 
+<!-- Full-screen overlay menu (mobile), faithful to OKC: the overlay fades
+     in, the big links are pushed to the lower area and rise in with a 60ms
+     stagger, then the "discuss the project" pill (accent-circle arrow) and
+     the CONTACT label above the mail / call / WhatsApp icons. -->
+<div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+  <nav class="mobile-menu__links" aria-label="Menu">
+    {
+      links.map((link, i) => (
+        <a class="mobile-menu__link" href={link.href} style={`--menu-i: ${i}`}>
+          {link.label}
+        </a>
+      ))
+    }
+  </nav>
+
+  <a class="mobile-menu__cta" href="/planner">
+    <span class="mobile-menu__cta-label">discuss the project</span>
+    <span class="mobile-menu__cta-icon" aria-hidden="true">
+      <svg viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <path
+          d="M0 5.65612V4.30388L8.41874 4.31842L5.05997 0.95965L5.99054 0L10.9923 4.97273L6.00508 9.96L5.07451 9.00035L8.43328 5.64158L0 5.65612Z"
+          fill="currentColor"
+        />
+      </svg>
+    </span>
+  </a>
+
+  <div class="mobile-menu__foot">
+    <p class="mobile-menu__label">Contact</p>
+    <ContactIcons settings={settings} />
+  </div>
+</div>
+
+<!-- Talk-to-us blob: fixed, not part of the nav, so it stays on every page
+     at every scroll position (like OKC's "let's talk" button). -->
+<div class="talk-cta">
+  <BlobButton href="/planner" label={'talk to\nus'} size={112} />
+</div>
+
 <script>
-  const toggle = document.getElementById('theme-toggle');
-  if (!toggle) throw new Error('Theme toggle button not found');
-  toggle.addEventListener('click', () => {
-    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem('theme', next);
-    } catch (e) {}
-  });
+  const initNav = () => {
+    // Tear down the previous run's window/document listeners (view
+    // transitions fire astro:page-load on every navigation).
+    if (window.__navCleanup) {
+      for (const [t, type, fn, opts] of window.__navCleanup) {
+        t.removeEventListener(type, fn, opts);
+      }
+      window.__navCleanup = null;
+    }
+    const cleanup: Array<
+      [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined]
+    > = [];
+    window.__navCleanup = cleanup;
+    const on = (
+      t: EventTarget,
+      type: string,
+      fn: EventListenerOrEventListenerObject,
+      opts?: boolean | AddEventListenerOptions,
+    ) => {
+      t.addEventListener(type, fn, opts);
+      cleanup.push([t, type, fn, opts]);
+    };
+
+    /* Hide the bar while scrolling down, reveal on scroll up (like OKC
+       Media), and fade in a soft veil once the page is scrolled at all.
+       On mobile the bar never hides — CSS forces it back — so the
+       hamburger stays reachable. */
+    const nav = document.getElementById('site-nav');
+    if (nav && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      let lastY = window.scrollY;
+      let ticking = false;
+
+      const update = () => {
+        const y = window.scrollY;
+        nav.classList.toggle('is-scrolled', y > 8);
+        const goingDown = y > lastY && y > 140;
+        nav.classList.toggle('is-hidden', goingDown);
+        lastY = y;
+        ticking = false;
+      };
+
+      on(window, 'scroll', () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(update);
+        }
+      }, { passive: true });
+      update();
+    }
+
+    /* Overlay menu. */
+    const toggle = document.getElementById('mobile-toggle');
+    const menu = document.getElementById('mobile-menu');
+    if (toggle && menu) {
+      const setOpen = (open: boolean) => {
+        toggle.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        menu.setAttribute('aria-hidden', String(!open));
+        document.body.classList.toggle('menu-open', open);
+        document.documentElement.classList.toggle('menu-open', open);
+      };
+
+      toggle.addEventListener('click', () => {
+        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+      });
+
+      // Any link inside the overlay closes the menu (the view transition
+      // then navigates). The CTA and Contact icons are links too.
+      menu.addEventListener('click', (e: Event) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('a')) setOpen(false);
+      });
+
+      on(window, 'keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setOpen(false);
+      });
+      on(window, 'resize', () => {
+        if (window.innerWidth > 900) setOpen(false);
+      });
+      // Safety net: a fresh page load should never start with the menu open.
+      setOpen(false);
+    }
+  };
+
+  document.addEventListener('astro:page-load', initNav);
 </script>

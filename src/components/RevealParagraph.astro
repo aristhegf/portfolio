@@ -1,0 +1,16 @@
+---
+/* Replaces the default <p> for 'normal' blocks when Prose is asked to
+   reveal: the paragraph rises through a clip window with a stagger,
+   matching the hero and closing-statement word animation. */
+interface Props {
+  index?: number;
+}
+
+const { index = 0 } = Astro.props;
+// Cap the stagger so late paragraphs don't wait forever to rise.
+const i = Math.min(index, 6);
+---
+
+<div class="story-para reveal" style={`--i: ${i}`}>
+  <p class="story-para__inner"><slot /></p>
+</div>

@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import BlobButton from '../components/BlobButton.astro';
+import PageLabel from '../components/PageLabel.astro';
 import { getProjects, getSettings } from '../lib/sanity';
 
 const settings = await getSettings();
@@ -12,11 +14,12 @@ const writing = projects
 <Layout title="Writing" settings={settings}>
   <section class="section">
     <div class="container">
-      <p class="meta reveal" style="--i: 0">
+      <PageLabel>writing</PageLabel>
+      <p class="meta reveal" style="--i: 1">
         <strong>{writing.length} pieces</strong> · poems, articles, essays
       </p>
-      <h1 class="display reveal" style="--i: 1; margin-top: 1.2rem">Writing</h1>
-      <p class="lead reveal" style="--i: 2; margin-top: 1.6rem; max-width: 46ch">
+      <h1 class="display reveal" style="--i: 2; margin-top: 1.2rem">Writing</h1>
+      <p class="lead reveal" style="--i: 3; margin-top: 1.6rem; max-width: 46ch">
         Everything written down — poems, articles, essays, and the occasional stray thought.
       </p>
     </div>
@@ -50,6 +53,23 @@ const writing = projects
           </div>
         )
       }
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: 0; text-align: center">
+    <div class="container">
+      <h2 class="h2 reveal" style="max-width: 20ch; margin-inline: auto">
+        Enjoying the words?
+      </h2>
+      <div class="reveal" style="--i: 1; margin-top: 2.4rem">
+        {settings?.email ? (
+          <BlobButton href="/planner" label="start a project" />
+        ) : (
+          <a class="btn" href="/about">
+            About me
+          </a>
+        )}
+      </div>
     </div>
   </section>
 </Layout>

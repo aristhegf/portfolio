@@ -1,0 +1,305 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getSettings } from '../lib/sanity';
+
+const settings = await getSettings();
+const email = settings?.email || '';
+
+const projectTypes = ['website', 'e-commerce', 'web service', 'branding', 'other'];
+const budgets = ['under $2k', '$2–6k', '$6–10k', '$10k+', 'not sure yet'];
+const timelines = ['up to 2 months', '2–6 months', '6–12 months', 'staged launch', 'ongoing development', 'not sure yet'];
+---
+
+<Layout
+  title="Start a project"
+  description="Tell me about your project — a few questions to understand the context and get back with an initial estimate."
+  settings={settings}
+>
+  <section class="planner">
+    <div class="container">
+      <div class="planner__main">
+        <h1 class="display planner__title reveal" style="--i: 0">
+          Tell us about your project
+        </h1>
+
+        <div class="planner__form reveal" style="--i: 1">
+          <form class="request-form" data-request-form data-email={email} novalidate>
+            {/* Honeypot — hidden from humans, irresistible to bots. */}
+            <div class="request-honeypot" aria-hidden="true">
+              <label for="request-website">Leave this field empty</label>
+              <input id="request-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+            </div>
+            <fieldset class="request-form__group" data-request-group="type">
+              <legend class="request-form__legend">Project type</legend>
+              <div class="request-form__chips" role="list" data-chip-row>
+                {projectTypes.map((v) => (
+                  <button type="button" class="request-chip" data-chip data-chip-group="type" data-chip-value={v} aria-pressed="false">
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset class="request-form__group" data-request-group="budget">
+              <legend class="request-form__legend">Budget range</legend>
+              <div class="request-form__chips" role="list" data-chip-row>
+                {budgets.map((v) => (
+                  <button type="button" class="request-chip" data-chip data-chip-group="budget" data-chip-value={v} aria-pressed="false">
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset class="request-form__group" data-request-group="timeline">
+              <legend class="request-form__legend">What timeline are you considering?</legend>
+              <div class="request-form__chips" role="list" data-chip-row>
+                {timelines.map((v) => (
+                  <button type="button" class="request-chip" data-chip data-chip-group="timeline" data-chip-value={v} aria-pressed="false">
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <div class="request-form__grid">
+              <fieldset class="request-form__group request-form__group--task">
+                <legend class="request-form__legend">Briefly about the task</legend>
+                <textarea class="request-field__control request-field__control--textarea" id="request-task" name="task" rows="5" required placeholder="A new project, a redesign, development of an existing one, content, support — tell me in free form."></textarea>
+              </fieldset>
+
+              <fieldset class="request-form__group request-form__group--contacts">
+                <legend class="request-form__legend">Contacts</legend>
+                <div class="request-form__contact-fields">
+                  <div class="request-field">
+                    <label class="request-field__label" for="request-name">What should I call you?</label>
+                    <input class="request-field__control" id="request-name" name="name" type="text" autocomplete="name" required placeholder="your name" />
+                  </div>
+
+                  <div class="request-field request-field--full">
+                    <label class="request-field__label" for="request-contact">What is the best way to reach you?</label>
+                    <input class="request-field__control" id="request-contact" name="contact" type="text" autocomplete="email" required placeholder="email, phone, telegram" />
+                  </div>
+
+                  <div class="request-field">
+                    <label class="request-field__label" for="request-company">Company or website, if any</label>
+                    <input class="request-field__control" id="request-company" name="company" type="text" autocomplete="organization" placeholder="name or website" />
+                  </div>
+
+                  <div class="request-field">
+                    <label class="request-field__label" for="request-phone">Your phone or WhatsApp, if useful</label>
+                    <input class="request-field__control" id="request-phone" name="phone" type="tel" autocomplete="tel" placeholder="+234 ..." />
+                  </div>
+
+                  <div class="request-field request-field--full">
+                    <label class="request-field__label" for="request-file">Additional materials</label>
+                    <div class="request-file">
+                      <input class="request-file__input" id="request-file" name="file" type="file" data-file-input accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.key,.numbers,.pages" />
+                      <button class="request-file__button" type="button" data-file-button>attach</button>
+                      <span class="request-file__name" data-file-name>No file selected · max 4 MB</span>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="request-agreement">
+              <label class="request-agreement__label" for="request-policy">
+                <input class="request-agreement__input" id="request-policy" name="policy" type="checkbox" required />
+                <span class="request-agreement__box" aria-hidden="true"></span>
+                <span class="request-agreement__text">I agree to be contacted about this project.</span>
+              </label>
+            </div>
+
+            <div class="request-form__actions">
+              <button class="request-submit" type="submit" data-request-submit>Book a Discovery Call</button>
+            </div>
+            <p class="request-error" data-request-error role="alert" hidden></p>
+          </form>
+
+          <div class="request-success" hidden data-request-success>
+            <p class="request-success__title display">
+              Thanks for the details — I'll get back to you within a day or two.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  /* Request form behavior, ported from OKC's planner: single-select chips,
+     the attach button, and a submit that posts the answers to /api/planner
+     (which saves them as Sanity documents). If the backend isn't configured
+     or the request fails, it falls back to composing a mailto so the
+     inquiry still reaches the owner. Re-inits on every view transition
+     (astro:page-load) — the form element is fresh after each swap, so
+     direct listeners are safe. */
+  const initPlanner = () => {
+    const form = document.querySelector<HTMLFormElement>('[data-request-form]');
+    const success = document.querySelector<HTMLElement>('[data-request-success]');
+    if (!form) return;
+
+    /* Chips — single select per group. */
+    form.querySelectorAll<HTMLButtonElement>('[data-chip]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const group = chip.dataset.chipGroup;
+        form
+          .querySelectorAll<HTMLButtonElement>(`[data-chip-group="${group}"]`)
+          .forEach((c) => c.setAttribute('aria-pressed', 'false'));
+        chip.setAttribute('aria-pressed', 'true');
+      });
+    });
+
+    /* Mobile: fade the right edge of a sliding row until it's fully scrolled. */
+    form.querySelectorAll<HTMLElement>('[data-chip-row]').forEach((row) => {
+      const update = () =>
+        row.classList.toggle('is-end', row.scrollLeft + row.clientWidth >= row.scrollWidth - 4);
+      update();
+      row.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update, { passive: true });
+    });
+
+    /* Attach button opens the hidden file input and shows the filename. */
+    const fileInput = form.querySelector<HTMLInputElement>('[data-file-input]');
+    const fileBtn = form.querySelector<HTMLButtonElement>('[data-file-button]');
+    const fileNameEl = form.querySelector<HTMLElement>('[data-file-name]');
+    if (fileBtn && fileInput && fileNameEl) {
+      fileBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        const f = fileInput.files?.[0];
+        fileNameEl.textContent = f
+          ? `${f.name}${f.size > 4 * 1024 * 1024 ? ' — too large (max 4 MB)' : ''}`
+          : 'No file selected · max 4 MB';
+      });
+    }
+
+    const picked = (group: string) =>
+      form
+        .querySelector<HTMLButtonElement>(`[data-chip-group="${group}"][aria-pressed="true"]`)
+        ?.dataset.chipValue || '—';
+
+    const markInvalid = (el: HTMLElement) => {
+      el.classList.add('is-invalid');
+      el.focus();
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      form.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+
+      const task = form.querySelector<HTMLTextAreaElement>('[name="task"]')!;
+      const nameInput = form.querySelector<HTMLInputElement>('[name="name"]')!;
+      const contact = form.querySelector<HTMLInputElement>('[name="contact"]')!;
+      const policy = form.querySelector<HTMLInputElement>('[name="policy"]')!;
+
+      if (!task.value.trim()) return markInvalid(task);
+      if (!nameInput.value.trim()) return markInvalid(nameInput);
+      if (!contact.value.trim()) return markInvalid(contact);
+      if (!policy.checked) return markInvalid(policy);
+
+      const company = form.querySelector<HTMLInputElement>('[name="company"]')!.value.trim();
+      const file = fileInput?.files?.[0] ?? null;
+      const fileName = file?.name || '';
+
+      /* Reject oversized attachments up front (the API enforces this too). */
+      if (file && file.size > 4 * 1024 * 1024) {
+        if (fileNameEl) {
+          fileNameEl.textContent = `${fileName} — too large (max 4 MB)`;
+        }
+        return;
+      }
+
+      const submitBtn = form.querySelector<HTMLButtonElement>('[data-request-submit]');
+      const idleLabel = submitBtn?.textContent || 'Book a Discovery Call';
+      const errorEl = form.querySelector<HTMLElement>('[data-request-error]');
+      const showError = (msg: string) => {
+        if (!errorEl) return;
+        errorEl.textContent = msg;
+        errorEl.hidden = false;
+      };
+      if (errorEl) errorEl.hidden = true;
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'sending…';
+        submitBtn.classList.add('is-sending');
+      }
+
+      /* Try the real backend first — multipart so the file uploads too. */
+      let saved = false;
+      let blocked = false; // server said stop — show it inline, no mailto
+      try {
+        const fd = new FormData();
+        fd.append('type', picked('type'));
+        fd.append('budget', picked('budget'));
+        fd.append('timeline', picked('timeline'));
+        fd.append('task', task.value.trim());
+        fd.append('name', nameInput.value.trim());
+        fd.append('contact', contact.value.trim());
+        fd.append('company', company);
+        fd.append('phone', form.querySelector<HTMLInputElement>('[name="phone"]')?.value.trim() || '');
+        /* Honeypot — empty for humans; automation that fills it gets discarded. */
+        fd.append('website', form.querySelector<HTMLInputElement>('[name="website"]')?.value || '');
+        if (file) fd.append('file', file, file.name);
+        const res = await fetch('/api/planner', { method: 'POST', body: fd });
+        if (res.status === 429) {
+          blocked = true;
+          showError("You've sent a few inquiries recently — please try again in a few minutes.");
+        } else if (res.status === 413) {
+          blocked = true;
+          showError('The attached file is too large (max 4 MB).');
+        } else if (res.status === 400) {
+          blocked = true;
+          showError('A required answer is missing — please check the fields above.');
+        } else {
+          saved = res.ok;
+        }
+      } catch {
+        saved = false;
+      }
+
+      /* Backend missing or failed — fall back to the mail client. */
+      if (!saved && !blocked) {
+        const subject = `Project inquiry — ${nameInput.value.trim()}`;
+        const body = [
+          `Project type: ${picked('type')}`,
+          `Budget: ${picked('budget')}`,
+          `Timeline: ${picked('timeline')}`,
+          '',
+          `Task: ${task.value.trim()}`,
+          '',
+          `Name: ${nameInput.value.trim()}`,
+          `Contact: ${contact.value.trim()}`,
+          form.querySelector<HTMLInputElement>('[name="phone"]')?.value.trim()
+            ? `Phone: ${form.querySelector<HTMLInputElement>('[name="phone"]')!.value.trim()}`
+            : '',
+          company ? `Company: ${company}` : '',
+          file ? `Attached: ${fileName}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
+
+        const email = form.dataset.email || '';
+        if (email) {
+          window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = idleLabel;
+        submitBtn.classList.remove('is-sending');
+      }
+
+      /* Server-side stop (rate limit / oversized file) — keep the form up. */
+      if (blocked) return;
+
+      form.hidden = true;
+      if (success) success.hidden = false;
+    });
+  };
+
+  document.addEventListener('astro:page-load', initPlanner);
+</script>

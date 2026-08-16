@@ -2,16 +2,20 @@
 import { PortableText } from '@portabletext/astro';
 import Link from './richtext/Link.astro';
 import RichImage from './richtext/RichImage.astro';
+import RevealParagraph from './RevealParagraph.astro';
 
 interface Props {
   value?: any;
+  /** Wrap each paragraph in the rise-through-clip reveal (About page). */
+  reveal?: boolean;
 }
 
-const { value } = Astro.props;
+const { value, reveal = false } = Astro.props;
 
 const components = {
   mark: { link: Link },
   type: { image: RichImage },
+  ...(reveal ? { block: { normal: RevealParagraph } } : {}),
 };
 ---
 

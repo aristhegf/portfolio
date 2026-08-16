@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getCategories, getProjects, getSettings } from '../lib/sanity';
+import BlobButton from '../components/BlobButton.astro';
+import { getCategories, getProjects, getSettings, urlFor } from '../lib/sanity';
 
 const settings = await getSettings();
 const categories = await getCategories();
@@ -20,9 +21,19 @@ for (const p of projects) {
   if (slug) counts.set(slug, (counts.get(slug) ?? 0) + 1);
 }
 
-const displayName = settings?.name || 'Portfolio';
-const headline = settings?.tagline || 'Editor, designer, and writer.';
-const role = settings?.role || 'Selected work across video, design, and the web';
+// Rotating hero quotes — editable in the Studio (Settings → Hero quotes).
+// Strip stega/zero-width chars the draft-preview encoding can inject.
+const stripStega = (s: string) => s.replace(/[\u200B-\u200F\u2060\u2061\u2062\u2063\uFEFF]/g, '').trim();
+const quoteSource = (settings?.heroQuotes ?? []).map(stripStega).filter(Boolean);
+const quotes =
+  quoteSource.length > 0
+    ? quoteSource
+    : [
+        'corgito, ergo sum',
+        'Design is thinking made visual.',
+        'Make it simple, but significant.',
+      ];
+const headline = quotes[0] ?? 'corgito, ergo sum';
 ---
 
 <Layout title={settings?.name ? `${settings.name} — work` : undefined} settings={settings}>
@@ -31,37 +42,48 @@ const role = settings?.role || 'Selected work across video, design, and the web'
     <div class="container">
       <p class="hero__eyebrow meta reveal" style="--i: 0">
         <span class="bar"></span>
-        {displayName} · {role}
+        Serial Creative
       </p>
-      <h1 class="display reveal" style="--i: 1">{headline}</h1>
+      <h1 class="display display--words hero-quote reveal" style="--i: 1" data-hero-quotes aria-label={headline}>
+        {
+          headline.split(' ').map((word, wi) => (
+            <>
+              {wi > 0 && ' '}
+              <span class="word" style={`--wi: ${wi}`}>
+                <span class="word__inner">{word}</span>
+              </span>
+            </>
+          ))
+        }
+      </h1>
       <p class="lead hero__lead reveal" style="--i: 2">
         {projects.length > 0
           ? `${projects.length} projects across ${categories.length || 1} disciplines, catalogued by skill and by year.`
           : 'A working archive of everything I make — video, books, sites, and words.'}
       </p>
-      <div class="hero__actions reveal" style="--i: 3">
-        <a class="btn" href="/work">
-          See the work <span class="arr">→</span>
-        </a>
-        <a class="btn btn--ghost" href="/about">
-          About
-        </a>
-      </div>
     </div>
   </section>
 
-  <!-- Category marquee -->
+  <!-- Category marquee — each discipline jumps to its filtered work page -->
   {
     categories.length > 0 && (
-      <div class="marquee" aria-hidden="true">
+      <div class="marquee" aria-label="Browse by discipline">
         <div class="marquee__track">
           {
-            [0, 1].map(() => (
-              <div class="marquee__item">
+            [0, 1].map((dup) => (
+              <div class="marquee__item" aria-hidden={dup === 1 ? 'true' : undefined}>
                 {categories.map((c) => (
                   <>
-                    <span>{c.name}</span>
-                    <span class="dot">•</span>
+                    <a
+                      class="marquee__link shine"
+                      href={`/work?category=${c.slug.current}`}
+                      tabindex={dup === 1 ? -1 : undefined}
+                      data-cursor
+                      data-cursor-text="open"
+                    >
+                      {c.name}
+                    </a>
+                    <span class="dot" aria-hidden="true">•</span>
                   </>
                 ))}
               </div>
@@ -77,30 +99,38 @@ const role = settings?.role || 'Selected work across video, design, and the web'
     <div class="container">
       <div class="section-head reveal">
         <h2 class="h2">Selected work</h2>
-        <a class="link-more" href="/work">
+        <a class="link-more shine" href="/work">
           All work →
         </a>
       </div>
 
       {heroProjects.length > 0 ? (
         <div>
-          {heroProjects.map((project, i) => (
-            <a
-              class="index-item reveal"
-              href={`/work/${project.slug.current}`}
-              style={`--i: ${Math.min(i, 4)}`}
-            >
-              <span class="index-item__num">{String(i + 1).padStart(2, '0')}</span>
-              <span class="index-item__title">
-                {project.title}
-                <span class="arrow">→</span>
-              </span>
-              <span class="index-item__meta">
-                {project.category?.name || 'Project'}
-                {project.year ? ` · ${project.year}` : ''}
-              </span>
-            </a>
-          ))}
+          {heroProjects.map((project, i) => {
+            const cover = urlFor(project.coverImage, 900);
+            return (
+              <a
+                class="index-item reveal"
+                href={`/work/${project.slug.current}`}
+                style={`--i: ${Math.min(i, 4)}`}
+                data-cover={cover}
+                data-cat={project.category?.name}
+                data-year={project.year}
+                data-cursor
+                data-cursor-text="open"
+              >
+                <span class="index-item__num">{String(i + 1).padStart(2, '0')}</span>
+                <span class="index-item__title">
+                  {project.title}
+                  <span class="arrow">→</span>
+                </span>
+                <span class="index-item__meta">
+                  {project.category?.name || 'Project'}
+                  {project.year ? ` · ${project.year}` : ''}
+                </span>
+              </a>
+            );
+          })}
         </div>
       ) : (
         <p style="color: var(--ink-2)">
@@ -117,7 +147,7 @@ const role = settings?.role || 'Selected work across video, design, and the web'
         <div class="container">
           <div class="section-head reveal">
             <h2 class="h2">What I do</h2>
-            <a class="link-more" href="/work">
+            <a class="link-more shine" href="/work">
               Browse by skill →
             </a>
           </div>
@@ -127,6 +157,8 @@ const role = settings?.role || 'Selected work across video, design, and the web'
                 class="skill-cell reveal"
                 href={`/work?category=${cat.slug.current}`}
                 style={`--i: ${i}`}
+                data-cursor
+                data-cursor-text="browse"
               >
                 <p class="skill-cell__count">
                   {counts.get(cat.slug.current) ?? 0} {counts.get(cat.slug.current) === 1 ? 'project' : 'projects'}
@@ -151,7 +183,7 @@ const role = settings?.role || 'Selected work across video, design, and the web'
         <div class="container">
           <div class="section-head reveal">
             <h2 class="h2">Latest writing</h2>
-            <a class="link-more" href="/writing">
+            <a class="link-more shine" href="/writing">
               All writing →
             </a>
           </div>
@@ -160,6 +192,8 @@ const role = settings?.role || 'Selected work across video, design, and the web'
               class="reading-item reveal"
               href={`/work/${item.slug.current}`}
               style={`--i: ${i}`}
+              data-cursor
+              data-cursor-text="read"
             >
               <div>
                 <h3 class="reading-item__title">{item.title}</h3>
@@ -173,28 +207,182 @@ const role = settings?.role || 'Selected work across video, design, and the web'
     )
   }
 
-  <!-- Closing CTA -->
-  <section class="section" style="padding-top: 0; text-align: center">
-    <div class="container">
-      <h2 class="h2 reveal" style="max-width: 20ch; margin-inline: auto">
-        Have something in mind?
+  <!-- Closing statement (OKC style) — drama before the quiet footer. -->
+  <section class="closing" aria-labelledby="closing-title">
+    <div class="container closing__inner">
+      <h2 class="closing__title reveal" id="closing-title" style="--i: 0">
+        {
+          'Have a project in mind?'.split(' ').map((word, wi) => (
+            <>
+              {wi > 0 && ' '}
+              <span class="word" style={`--wi: ${wi}`}>
+                <span class="word__inner">{word}</span>
+              </span>
+            </>
+          ))
+        }
       </h2>
-      <p class="lead reveal" style="margin: 1.4rem auto 0; --i: 1">
-        {settings?.available === false
-          ? 'Currently booked up — but reach out anyway.'
-          : 'I take on a limited number of projects each season.'}
+      <p class="closing__lead reveal" style="--i: 1">
+        Tell me what you're working on — I'll translate your goals into design
+        and technology, then suggest the right way to work together.
       </p>
-      <div class="reveal" style="--i: 2; margin-top: 2.2rem">
-        {settings?.email ? (
-          <a class="btn" href={`mailto:${settings.email}`}>
-            Start a project
-          </a>
-        ) : (
-          <a class="btn" href="/about">
-            About me
-          </a>
-        )}
+      <div class="closing__cta reveal" style="--i: 2">
+        <BlobButton href="/planner" label="talk to us" />
       </div>
     </div>
   </section>
+
+  <!-- Ghost cover preview: the hovered project's cover trails the cursor. -->
+  <div class="ghost" data-ghost aria-hidden="true">
+    <div class="ghost__frame">
+      <img class="ghost__img" alt="" loading="lazy" />
+      <div class="ghost__meta">
+        <span data-ghost-cat></span>
+        <span data-ghost-year></span>
+      </div>
+    </div>
+  </div>
 </Layout>
+
+<script>
+  /* Ghost cover preview — browsing the index trails the hovered project's
+     cover after the cursor. Decorative; fine pointers without reduced
+     motion only, and hidden entirely on touch devices. Re-runs on every
+     view transition (astro:page-load). */
+  const initGhost = () => {
+  const finePointer = matchMedia('(pointer: fine)').matches;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ghost = document.querySelector<HTMLElement>('[data-ghost]');
+  const img = document.querySelector<HTMLImageElement>('.ghost__img');
+  const ghostCat = document.querySelector<HTMLElement>('[data-ghost-cat]');
+  const ghostYear = document.querySelector<HTMLElement>('[data-ghost-year]');
+  const items = Array.from(document.querySelectorAll<HTMLElement>('.index-item'));
+
+  if (finePointer && !reduceMotion && ghost && img && items.length) {
+    let raf = 0;
+    let px = -200;
+    let py = -200;
+
+    const pos = () => {
+      const w = ghost.offsetWidth;
+      const h = ghost.offsetHeight;
+      let x = px + 30;
+      let y = py - h - 18;
+      x = Math.min(Math.max(12, x), window.innerWidth - w - 12);
+      y = Math.max(12, y);
+      ghost.style.transform = `translate(${x}px, ${y}px) rotate(-2deg)`;
+      raf = 0;
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(pos);
+    };
+
+    window.addEventListener('mousemove', (e) => {
+      px = e.clientX;
+      py = e.clientY;
+      schedule();
+    });
+
+    items.forEach((item) => {
+      item.addEventListener('mouseenter', () => {
+        const cover = item.dataset.cover;
+        if (!cover) return;
+        img.src = cover;
+        img.alt = item.querySelector('.index-item__title')?.textContent?.trim() ?? '';
+        if (ghostCat) ghostCat.textContent = item.dataset.cat ?? '';
+        if (ghostYear) ghostYear.textContent = item.dataset.year ? ` · ${item.dataset.year}` : '';
+        ghost.classList.add('is-on');
+      });
+      item.addEventListener('mouseleave', () => ghost.classList.remove('is-on'));
+    });
+  }
+  };
+
+  document.addEventListener('astro:page-load', initGhost);
+</script>
+
+<!-- Hero quotes for the rotation script (JSON so it stays processed). -->
+<script type="application/json" id="hero-quotes-data" set:html={JSON.stringify(quotes).replace(/</g, '\\u003c')}></script>
+
+<script>
+  /* Typewriter hero quotes: the first quote is already rendered on load
+     (word-stagger reveal), then each quote types in character by character,
+     holds for 3s, fades out, and the next one starts. Reduced motion swaps
+     the text instantly every 3s instead. Re-inits (tearing the previous
+     run's timer down) on every view transition via astro:page-load. */
+  const initQuotes = () => {
+    if (window.__quoteTimer) {
+      window.clearTimeout(window.__quoteTimer);
+      window.__quoteTimer = null;
+    }
+    const el = document.querySelector<HTMLElement>('[data-hero-quotes]');
+    const dataEl = document.getElementById('hero-quotes-data');
+    if (!el || !dataEl) return;
+    let list: string[] = [];
+    try {
+      list = JSON.parse(dataEl.textContent ?? '[]');
+    } catch {
+      list = [];
+    }
+    if (list.length < 2) return;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const TYPING_MS = 42; // per character
+    const HOLD_MS = 3000; // per quote
+    const CLEAR_MS = 240; // fade-out before the next quote
+
+    const later = (fn: () => void, ms: number) => {
+      window.__quoteTimer = window.setTimeout(() => {
+        window.__quoteTimer = null;
+        fn();
+      }, ms);
+    };
+
+    let index = 0;
+
+    /* The first quote is already on screen (server-rendered); hold it, then
+       start the loop. Every subsequent quote (including #1 on the wrap)
+       gets typed out. */
+    const type = () => {
+      const text = list[index]!;
+      el.textContent = '';
+      el.classList.add('is-typing');
+      let i = 0;
+      const tick = () => {
+        i++;
+        el.textContent = text.slice(0, i);
+        if (i < text.length) {
+          later(tick, TYPING_MS);
+        } else {
+          el.classList.remove('is-typing');
+          later(clear, HOLD_MS);
+        }
+      };
+      later(tick, 160); // a beat before the letters start
+    };
+
+    const clear = () => {
+      el.classList.add('is-clearing');
+      later(() => {
+        el.classList.remove('is-clearing');
+        index = (index + 1) % list.length;
+        type();
+      }, CLEAR_MS);
+    };
+
+    if (reduceMotion) {
+      /* No typing — just swap the text on the beat. */
+      const swap = () => {
+        index = (index + 1) % list.length;
+        el.textContent = list[index]!;
+      };
+      later(swap, HOLD_MS);
+      // chain a simple interval for the reduced-motion path
+      window.__quoteTimer = window.setInterval(swap, HOLD_MS);
+    } else {
+      later(clear, HOLD_MS);
+    }
+  };
+
+  document.addEventListener('astro:page-load', initQuotes);
+</script>
