@@ -32,6 +32,9 @@ importers:
       '@sanity/client':
         specifier: ^7.14.1
         version: 7.26.2
+      '@sanity/icons':
+        specifier: ^5.2.1
+        version: 5.2.1(react@19.2.8)
       '@sanity/image-url':
         specifier: ^1.1.0
         version: 1.2.0

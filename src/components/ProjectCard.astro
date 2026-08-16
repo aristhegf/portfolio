@@ -18,7 +18,7 @@ const category = project.category?.name;
 
 <article
   class={cx('filter-result reveal')}
-  style="--i: {index}"
+  style={`--i: ${index}`}
   data-category={project.category?.slug.current ?? ''}
   data-year={project.year ?? ''}
 >
@@ -44,6 +44,7 @@ const category = project.category?.name;
           {initials(project.title)}
         </div>
       )}
+      {video && <span class="card__dead" aria-hidden="true" hidden>video unavailable</span>}
     </div>
     <div class="card__body">
       <h3 class="card__title">{project.title}</h3>
@@ -56,12 +57,54 @@ const category = project.category?.name;
 </article>
 
 <script>
-  /* Animated covers play on hover, Dribbble-style. */
+  /* Animated covers play on hover, Dribbble-style. A dead or permanently
+     failing source (missing file, 403, wrong codec) falls back to the poster
+     image instead of retrying forever; transient hiccups get a small retry
+     budget, and leaving the card mid-load is treated as normal, not failure. */
   const videos = document.querySelectorAll<HTMLVideoElement>('.card__video');
+
   videos.forEach((video) => {
     const card = video.closest('.card');
     if (!card) return;
-    card.addEventListener('mouseenter', () => void video.play().catch(() => {}));
+
+    const RETRY_BUDGET = 3;
+    let failures = 0;
+    let dead = false;
+    const chip = card.querySelector<HTMLElement>('.card__dead');
+
+    // Flag the card as dead and surface the "video unavailable" cue over the
+    // poster, so a broken cover is visible instead of a silent no-op.
+    const markDead = () => {
+      if (dead) return;
+      dead = true;
+      if (chip) chip.hidden = false;
+    };
+
+    // A source the browser can't decode will never recover — flag it
+    // permanently so future hovers don't keep re-requesting the URL.
+    video.addEventListener('error', () => {
+      if (video.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+        markDead();
+      }
+    });
+
+    const tryPlay = () => {
+      if (dead || failures >= RETRY_BUDGET) return; // poster stays put
+      video.play().catch((err: unknown) => {
+        // AbortError just means the user left before the load finished.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // Unsupported source is permanent — stop asking the browser for it.
+        if (video.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+          markDead();
+          return;
+        }
+        // Anything else (transient network, etc.) burns one retry.
+        failures += 1;
+        if (failures >= RETRY_BUDGET) markDead();
+      });
+    };
+
+    card.addEventListener('mouseenter', tryPlay);
     card.addEventListener('mouseleave', () => video.pause());
   });
 </script>

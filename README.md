@@ -80,6 +80,22 @@ In https://www.sanity.io/manage → your project → **API → CORS origins**, a
 and `http://localhost:4321` (method: `GET`). The studio login also needs the URL you open it at
 to be listed.
 
+## Draft preview (unpublished edits)
+
+The site can render unpublished edits live. Set **both** of these in `.env` (or on a
+Vercel preview deployment):
+
+```bash
+PUBLIC_SANITY_VISUAL_EDITING_ENABLED=true
+SANITY_API_READ_TOKEN=your-read-only-token   # Sanity → Manage → API → Tokens, role: Viewer
+```
+
+With both set, every data query runs at `perspective: 'previews'` — published content
+with drafts merged on top — so you can review drafts exactly as they'd appear once
+published. **Leave the flag off on the production deployment** so drafts are never
+public. The studio also gets an **Open preview** action on each document that jumps
+to the page it renders.
+
 ## Content model
 
 | Type | Purpose | Key fields |

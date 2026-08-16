@@ -60,6 +60,15 @@ export default defineConfig({
   output: 'server',
   adapter: vercel(),
   site,
+  vite: {
+    optimizeDeps: {
+      // react-compiler-runtime ships a single minified CJS file whose named
+      // export (`c`) Rolldown's pre-bundler mangles, breaking the VisualEditing
+      // React island in dev. Excluding it lets esbuild's dev transform handle
+      // the CJS interop instead.
+      exclude: ['react-compiler-runtime'],
+    },
+  },
   integrations: configured
     ? [
         react(),

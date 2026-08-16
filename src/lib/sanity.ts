@@ -6,15 +6,52 @@ export const dataset = (import.meta.env.SANITY_DATASET || 'production') as strin
 
 export const isConfigured = Boolean(projectId);
 
-/** Shared Sanity client. Public read-only credentials only — no token needed. */
+/**
+ * Draft preview — enabled per environment via PUBLIC_SANITY_VISUAL_EDITING_ENABLED
+ * plus a read token. With it on, queries run at `perspective: 'previews'`
+ * (published + drafts merged), so unpublished edits render live. Production
+ * keeps the flag off, so drafts are never exposed there.
+ */
+const previewEnabled = import.meta.env.PUBLIC_SANITY_VISUAL_EDITING_ENABLED === 'true';
+const readToken = import.meta.env.SANITY_API_READ_TOKEN as string | undefined;
+
+if (previewEnabled && !readToken) {
+  console.warn(
+    '[portfolio] Draft preview is enabled but SANITY_API_READ_TOKEN is missing — drafts will not render.',
+  );
+}
+
+/** Shared Sanity client. Public read-only credentials in production. */
 export const client = isConfigured
   ? createClient({
       projectId: projectId!,
       dataset,
       apiVersion: '2024-01-01',
-      useCdn: true,
+      useCdn: !previewEnabled,
+      ...(previewEnabled && readToken
+        ? { perspective: 'drafts' as const, token: readToken }
+        : {}),
+      // Stega config: encodes edit-info into query results so the Visual
+      // Editing overlays can map rendered text back to editor fields.
+      ...(previewEnabled ? { stega: { enabled: true, studioUrl: '/studio' } } : {}),
     })
   : null;
+
+/**
+ * Query helper for Visual Editing. When preview is enabled, requests return
+ * stega-encoded strings plus a source map, which is what the Overlays UI (see
+ * <VisualEditing /> in the Layout) needs to highlight and open editable fields.
+ * In production the same query runs without stega, so output stays clean.
+ */
+async function loadQuery<T>(query: string, params?: Record<string, unknown>): Promise<T> {
+  if (!client) throw new Error('Sanity client is not configured');
+  const { result } = await client.fetch<T>(query, params ?? {}, {
+    filterResponse: false,
+    resultSourceMap: previewEnabled ? 'withKeyArraySelector' : false,
+    stega: previewEnabled,
+  });
+  return result;
+}
 
 const builder = projectId
   ? imageUrlBuilder({ projectId, dataset })
@@ -86,26 +123,26 @@ const projectFields = `_id, title, slug, year, role, excerpt, tags, featured, or
 
 export async function getSettings(): Promise<Settings | null> {
   if (!client) return null;
-  return client.fetch(`*[_type == "settings"][0]`);
+  return loadQuery<Settings>(`*[_type == "settings"][0]`);
 }
 
 export async function getCategories(): Promise<Category[]> {
   if (!client) return [];
-  return client.fetch(
+  return loadQuery<Category[]>(
     `*[_type == "category"] | order(order asc, name asc) { _id, name, slug, description, order }`,
   );
 }
 
 export async function getProjects(): Promise<Project[]> {
   if (!client) return [];
-  return client.fetch(
+  return loadQuery<Project[]>(
     `*[_type == "project"] | order(year desc, order asc, _createdAt desc) { ${projectFields} }`,
   );
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   if (!client) return null;
-  return client.fetch(
+  return loadQuery<Project | null>(
     `*[_type == "project" && slug.current == $slug][0] { ..., coverImage, gallery, category->{ _id, name, slug } }`,
     { slug },
   );

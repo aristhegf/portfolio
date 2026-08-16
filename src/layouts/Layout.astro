@@ -6,7 +6,13 @@ import '@fontsource/ibm-plex-mono/500.css';
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import Starfield from '../components/Starfield.astro';
+import { VisualEditing } from '@sanity/astro/visual-editing';
 import { getSettings, type Settings } from '../lib/sanity';
+
+// Visual Editing overlays only mount when this flag is on; otherwise the
+// component renders nothing and no React runtime ships to the page.
+const visualEditingEnabled = import.meta.env.PUBLIC_SANITY_VISUAL_EDITING_ENABLED === 'true';
 
 interface Props {
   title?: string;
@@ -25,6 +31,10 @@ const {
 const settings = settingsProp !== undefined ? settingsProp : await getSettings();
 const siteName = settings?.name || 'Portfolio';
 const fullTitle = title ? `${title} — ${siteName}` : siteName;
+// Canonical/OG should point at the configured site (SITE_URL), not the request
+// origin — so dev previews and filtered URLs (e.g. /work?category=…) resolve
+// to clean production URLs. Falls back to the request URL when site is unset.
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
@@ -37,11 +47,11 @@ const fullTitle = title ? `${title} — ${siteName}` : siteName;
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="canonical" href={Astro.url.href} />
+    <link rel="canonical" href={canonicalUrl} />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:url" content={canonicalUrl} />
     <script is:inline>
       /* Set theme before paint to avoid a flash of the wrong mode. */
       (function () {
@@ -57,6 +67,7 @@ const fullTitle = title ? `${title} — ${siteName}` : siteName;
     </script>
   </head>
   <body>
+    <Starfield />
     <Nav settings={settings} />
     <main>
       <slot />
@@ -71,8 +82,20 @@ const fullTitle = title ? `${title} — ${siteName}` : siteName;
           (entries) => {
             for (const entry of entries) {
               if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-                io.unobserve(entry.target);
+                const el = entry.target as HTMLElement;
+                // Apply the stagger inline so it wins over any competing
+                // `transition` shorthand (e.g. .filter-result on /work), then
+                // clear it once the reveal finishes so later transitions —
+                // like the work filters' fades — aren't delayed.
+                const i = el.style.getPropertyValue('--i').trim();
+                if (i) {
+                  el.style.transitionDelay = `calc(${i} * 70ms)`;
+                  const clearDelay = () => el.style.removeProperty('transition-delay');
+                  el.addEventListener('transitionend', clearDelay, { once: true });
+                  el.addEventListener('transitioncancel', clearDelay, { once: true });
+                }
+                el.classList.add('is-visible');
+                io.unobserve(el);
               }
             }
           },
@@ -91,5 +114,6 @@ const fullTitle = title ? `${title} — ${siteName}` : siteName;
         }
       </style>
     </noscript>
+    <VisualEditing enabled={visualEditingEnabled} zIndex={1000} />
   </body>
 </html>
