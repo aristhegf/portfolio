@@ -5,7 +5,10 @@ import Layout from '../layouts/Layout.astro';
 <Layout title="Not found" noindex>
   <section class="section" style="min-height: 62vh; display: grid; place-items: center">
     <div class="container text-center">
-      <p class="meta">Error 404</p>
+      <div class="page-label" style="--i: 0">
+        <span aria-hidden="true"></span>
+        <p>Error 404</p>
+      </div>
       <h1 class="display" style="margin-top: 1.2rem">This page went missing.</h1>
       <p class="lead" style="margin: 1.6rem auto 0">Whatever you're after isn't here anymore.</p>
 

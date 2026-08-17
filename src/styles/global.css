@@ -1247,11 +1247,26 @@ body.menu-open .mobile-menu__foot .contact-icons {
   transform: translateY(0);
 }
 
-/* The cell itself doesn't fade — the value chars are the reveal. */
+/* The cell itself rises in with a stagger (cascade like the menu links);
+   on mobile it collapses to a simple fade since single-column stacking
+   doesn't need a lateral cascade. */
 .facts-cell.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.facts-cell.is-visible {
   opacity: 1;
   transform: none;
-  transition: none;
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 120ms);
+}
+
+@media (max-width: 990px) {
+  .facts-cell.reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .facts-card__text {
