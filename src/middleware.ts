@@ -42,6 +42,9 @@ function loginPage(showError: boolean): Response {
       button:hover { opacity: .88; }
       .error { margin-top: 1rem; font-size: .74rem; letter-spacing: .08em; color: var(--accent); }
       .error[hidden] { display: none; }
+      .logout { margin-top: 2rem; text-align: center; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; }
+      .logout a { color: var(--ink-2); text-decoration: none; }
+      .logout a:hover { color: var(--ink); }
     </style>
   </head>
   <body>
@@ -51,6 +54,7 @@ function loginPage(showError: boolean): Response {
       <input id="password" name="password" type="password" placeholder="Password" autocomplete="current-password" autofocus />
       <button type="submit">Unlock</button>
       <p class="error" ${showError ? '' : 'hidden'}>Wrong password.</p>
+      <p class="logout"><a href="/studio/logout">Log out</a></p>
     </form>
   </body>
 </html>`;
@@ -61,13 +65,23 @@ function loginPage(showError: boolean): Response {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { request, redirect } = context;
+  const { request } = context;
   const url = new URL(request.url);
   const isStudio =
     url.pathname === STUDIO_PREFIX || url.pathname.startsWith(`${STUDIO_PREFIX}/`);
 
   // Everything outside /studio flows straight through.
   if (!isStudio) return next();
+
+  // Explicit logout: clear the session cookie and land back on the login.
+  // Works standalone (visit /studio/logout) or from the login page link.
+  if (url.pathname === `${STUDIO_PREFIX}/logout`) {
+    const clearCookie = `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${import.meta.env.PROD ? '; Secure' : ''}`;
+    return new Response(null, {
+      status: 302,
+      headers: { Location: STUDIO_PREFIX, 'Set-Cookie': clearCookie },
+    });
+  }
 
   // If no password is configured the studio is unreachable in production
   // (fail closed) but still usable in local dev.
