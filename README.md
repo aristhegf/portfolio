@@ -1,100 +1,141 @@
-# MyHelpa — AI Job Search Co-pilot
+# Portfolio
 
-An AI-powered job-search co-pilot that doesn't just find visa-sponsoring roles — it manages the entire application lifecycle.
+A personal portfolio for a multi-skill maker — video editing, ebook design, websites, graphic
+design, branding, and writing — catalogued **by skill and by year**, with a content backend you
+manage yourself.
 
-## Features
+- **Frontend** — [Astro](https://astro.build) (server-rendered on Vercel)
+- **Backend / CMS** — [Sanity](https://www.sanity.io), admin studio at `/studio`
+- **Design** — monochrome editorial, day/night toggle, lots of whitespace
 
-- **Job Discovery Engine** — Two freshness layers: daily email alerts + monthly CSV cross-referencing
-- **Requirement Extraction** — Claude-powered JD parsing with confidence scores
-- **Document Vault** — Version-controlled documents with checksums
-- **Tailoring Engine** — AI-generated drafts with full provenance tracking
-- **Application Tracker** — Kanban board + funnel analytics
-- **Immigration Intelligence** — Deterministic CRS calculation against versioned rules
-- **Interview Scheduler** — Calendar assistant (propose/approve/book)
-- **Background Jobs** — Supabase-backed job queue with retry/backoff
-
-## Tech Stack
-
-- **Frontend**: Next.js (App Router) + Tailwind CSS
-- **Database**: Supabase (PostgreSQL + RLS)
-- **AI**: Claude API (extraction, tailoring, explanation)
-- **Background Jobs**: Supabase-backed `jobs` table + worker
-- **Hosting**: Vercel
-
-## Quick Start
+## Quick start
 
 ```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.local.example .env.local
-# Edit .env.local with your Supabase and Anthropic keys
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
+pnpm install
+cp .env.example .env     # then fill in your Sanity details
+pnpm dev
 ```
 
-## Database Setup
+`pnpm dev` runs **both** the site and the content studio — the studio lives at
+**`/studio`** on the same server. There is no separate Sanity server to start.
 
-1. Create a Supabase project at https://supabase.com
-2. Run the migration in `supabase/migrations/001_initial_schema.sql`
-3. Copy your Supabase URL and anon key to `.env.local`
+## 1. Create your Sanity project
 
-## Project Structure
+You need a free Sanity account. Two options:
 
-```
-src/
-├── app/                    # Next.js App Router pages
-│   ├── page.tsx            # Dashboard
-│   ├── jobs/               # Job listings and filters
-│   ├── applications/       # Application tracker
-│   ├── documents/          # Document vault
-│   ├── immigration/        # Immigration pathway tracker
-│   └── api/cron/           # Vercel cron endpoint
-├── components/             # React components
-│   ├── navigation.tsx      # Main navigation
-│   ├── dashboard-stats.tsx # Dashboard statistics
-│   ├── review-queue.tsx    # Needs-your-review queue
-│   └── ...
-├── lib/                    # Utility functions
-│   ├── supabase.ts         # Browser Supabase client
-│   ├── supabase-server.ts  # Server Supabase client
-│   ├── utils.ts            # Utility helpers
-│   └── jobs/               # Job processing logic
-│       ├── parser.ts       # CSV parser & normalizer
-│       ├── dedup.ts        # Deduplication logic
-│       └── worker.ts       # Background job worker
-└── types/                  # TypeScript types
-    └── database.ts         # Database schema types
+**Option A — CLI (recommended):**
+
+```bash
+pnpm sanity init
 ```
 
-## Roadmap
+- Choose **"Create new project"** (or link an existing one).
+- Pick a project name, use the default dataset `production`.
+- When asked, **reuse the existing configuration** (it will just fill in your
+  `projectId`/`dataset` into `.env`).
+- The schema in `sanity/` is already written — you do not need to add types.
 
-| Phase | Scope |
-|-------|-------|
-| 0 | Data pipeline validation — Ingest Job Bank CSV + LMIA list |
-| 1 | Profile + matching — Profile schema, hard-filter + ranking |
-| 2 | Application tracker — Save → application → status → next action |
-| 3 | Document vault — documents/document_versions, basic validation |
-| 4 | Requirement extraction — Claude JD parsing with confidence |
-| 5 | Tailoring engine — Draft generation with generation_runs tracking |
-| 6 | Observer — Deterministic rule engine, notification/nudge layer |
-| 7 | Immigration intelligence — Versioned ruleset, deterministic CRS |
-| 8 | Scheduling — Calendar assistant (propose/approve/book) |
-| 9 | Browser extension — Manual capture tool |
-| 10 | Optional expansion — Public content/SEO, multi-tenant |
+**Option B — manual:**
 
-## Security
+1. Create a project at https://www.sanity.io/manage
+2. Copy its **Project ID** and **dataset name** into `.env`:
 
-- Row Level Security (RLS) on every user-scoped table
-- OAuth tokens (Calendar, Gmail) server-side only
-- Basic file-type/size validation on upload
-- Encryption at rest, signed time-limited URLs
+```bash
+SANITY_PROJECT_ID=your-project-id
+SANITY_DATASET=production
+SITE_URL=https://your-site.vercel.app
+```
 
-## License
+## 2. First publish
 
-Private — All rights reserved.
+> The studio is served by the Astro dev server itself — open
+> **http://localhost:4321/studio** while `pnpm dev` is running and sign in.
+> (For local-only development, `pnpm sanity dev` also works, but `/studio` is
+> the single entry point — one server, one URL.)
+
+1. Open the studio at **http://localhost:4321/studio** (start the server first).
+2. Create at least one **Skill / Category** first: `Video Editing`, `Ebook Design`,
+   `Websites`, `Graphic Design`, `Branding`, `Writing` — plus any you want.
+3. Create a **Site settings** document (your name, headline, email, socials, profile image).
+4. Add your first **Project**. The category and year fields drive the filters.
+
+> Tip: the Writing skill is what powers the `/writing` page. Anything with the
+> `Writing` category shows up there as a poem/article/essay.
+
+## 3. Deploy to Vercel
+
+1. Push this folder to a Git repo (GitHub/GitLab).
+2. In Vercel, **New Project** → import the repo.
+3. Vercel detects `pnpm` automatically.
+4. Add the environment variables in **Settings → Environment Variables**:
+   `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SITE_URL`.
+5. Deploy.
+
+Because the site is server-rendered, **edits in Sanity go live immediately** — no redeploys
+needed.
+
+### Allow Vercel to read your Sanity data (CORS)
+
+In https://www.sanity.io/manage → your project → **API → CORS origins**, add your deployed URL
+and `http://localhost:4321` (method: `GET`). The studio login also needs the URL you open it at
+to be listed.
+
+## Draft preview (unpublished edits)
+
+The site can render unpublished edits live. Set **both** of these in `.env` (or on a
+Vercel preview deployment):
+
+```bash
+PUBLIC_SANITY_VISUAL_EDITING_ENABLED=true
+SANITY_API_READ_TOKEN=your-read-only-token   # Sanity → Manage → API → Tokens, role: Viewer
+```
+
+With both set, every data query runs at `perspective: 'previews'` — published content
+with drafts merged on top — so you can review drafts exactly as they'd appear once
+published. **Leave the flag off on the production deployment** so drafts are never
+public. The studio also gets an **Open preview** action on each document that jumps
+to the page it renders.
+
+## Content model
+
+| Type | Purpose | Key fields |
+| --- | --- | --- |
+| `category` | A skill (Video Editing, Writing, …) | name, slug, description, order |
+| `project` | Any piece of work | title, category, **year**, cover, gallery, video link, live link, body, tags, featured |
+| `settings` | Single site-wide document | name, headline, bio, email, location, socials |
+
+## Project fields explained
+
+- **Category + Year** — power the skill/year filters on `/work`.
+- **Video link** — paste a YouTube/Vimeo URL or a direct `.mp4` link; it embeds on the page.
+- **Cover image** — ~4:3 works best for cards.
+- **Body** — project description, or the full text of a poem/article.
+- **Featured** — promoted to the top of the home page "Selected work".
+
+## Day / night
+
+The toggle in the nav saves to `localStorage`; first-time visitors get their OS preference.
+Colors and tokens live in `src/styles/global.css` (`:root` / `:root[data-theme='dark']`).
+
+## Working on Windows (WSL)
+
+If `pnpm install` is extremely slow on a `/mnt/c` drive, move the pnpm store to the native
+Linux filesystem — but do it **outside this repo** so Vercel is never affected:
+
+```bash
+pnpm config set virtual-store-dir ~/.cache/portfolio-vs   # writes to ~/.npmrc, not the repo
+```
+
+Never put a `virtual-store-dir`/`store-dir` in the repo's `.npmrc`: Vercel honors it too, and
+moving the store outside the project root breaks the Astro build (compile-cache miss on
+`@sanity/astro`'s studio route).
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Dev server on http://localhost:4321 |
+| `pnpm build` | Production build |
+| `pnpm preview` | Preview the production build locally |
+| `pnpm typecheck` | Type-check with `astro check` |
+| `pnpm sanity` | Run Sanity CLI commands |

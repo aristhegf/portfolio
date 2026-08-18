@@ -1,65 +1,55 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import type { Project } from './sanity';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+/** Join class names, ignoring falsy values. */
+export function cx(...parts: (string | false | null | undefined)[]): string {
+  return parts.filter(Boolean).join(' ');
 }
 
-/** Alias — some files import cx instead of cn */
-export const cx = cn;
-
-/**
- * Extract years from an array of projects for filtering
- */
-export function getYears(projects: { year?: string | number }[]): number[] {
-  const years = new Set<number>();
-  for (const p of projects) {
-    if (p.year) {
-      const y = typeof p.year === 'string' ? parseInt(p.year, 10) : p.year;
-      if (!isNaN(y)) years.add(y);
-    }
-  }
-  return Array.from(years).sort((a, b) => b - a);
-}
-
-/**
- * Check if a URL is a direct video file
- */
-export function isDirectVideo(url: string): boolean {
-  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
-}
-
-/**
- * Build an embeddable src URL from a video hosting platform
- * (YouTube, Vimeo, etc.)
- */
-export function embedSrc(url: string): string {
-  // YouTube
-  const ytMatch = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]+)/
+/** Distinct years present across a project list, newest first. */
+export function getYears(projects: Project[]): number[] {
+  return [...new Set(projects.map((p) => p.year).filter((y): y is number => Boolean(y)))].sort(
+    (a, b) => b - a,
   );
-  if (ytMatch) {
-    return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  }
-
-  // Vimeo
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-  if (vimeoMatch) {
-    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  }
-
-  // Already embeddable or unknown — return as-is
-  return url;
 }
 
-/**
- * Extract initials from a name
- */
+/** Slugs of the categories present across a project list. */
+export function getUsedCategorySlugs(projects: Project[]): string[] {
+  return [...new Set(projects.map((p) => p.category?.slug.current).filter(Boolean))] as string[];
+}
+
+export function extractYouTubeId(url: string): string | null {
+  const m = url.match(
+    /(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/,
+  );
+  return m ? m[1] : null;
+}
+
+export function extractVimeoId(url: string): string | null {
+  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  return m ? m[1] : null;
+}
+
+/** Convert a media URL to an embeddable iframe src (YouTube / Vimeo), or null. */
+export function embedSrc(url?: string): string | null {
+  if (!url) return null;
+  const yt = extractYouTubeId(url);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt}`;
+  const vm = extractVimeoId(url);
+  if (vm) return `https://player.vimeo.com/video/${vm}`;
+  return null;
+}
+
+/** True when the media URL points at a directly-playable video file. */
+export function isDirectVideo(url?: string): boolean {
+  if (!url) return false;
+  return /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+}
+
 export function initials(name: string): string {
   return name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
+    .map((w) => w[0]!.toUpperCase())
     .join('');
 }
