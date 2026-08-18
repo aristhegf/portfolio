@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { AuthForm } from '../../components/auth-form';
+import { getSettings } from '../../lib/sanity';
+
+const settings = await getSettings();
+---
+
+<Layout title="Sign Up" description="Create your account" settings={settings}>
+  <AuthForm mode="signup" client:load />
+</Layout>

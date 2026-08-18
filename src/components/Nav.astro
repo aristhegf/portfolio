@@ -16,7 +16,12 @@ const links = [
   { href: '/work', label: 'work' },
   { href: '/writing', label: 'writing' },
   { href: '/about', label: 'about' },
+  { href: '/profile', label: 'profile' },
 ];
+
+// Auth link (shown in nav controls)
+const authHref = '/auth/login';
+const authLabel = 'sign in';
 ---
 
 <header class="nav" id="site-nav">
@@ -59,9 +64,10 @@ const links = [
       aria-expanded="false"
     ></button>
 
-    {/* Spacer reserving the right edge on desktop so the links never run
-        under the fixed talk-to-us button. */}
-    <div class="nav__controls" aria-hidden="true"></div>
+    {/* Auth link + spacer */}
+    <div class="nav__controls">
+      <a class="nav__link shine" href={authHref}>{authLabel}</a>
+    </div>
   </div>
 </header>
 
@@ -79,6 +85,8 @@ const links = [
       ))
     }
   </nav>
+
+  <a class="mobile-menu__link" href={authHref} style={`--menu-i: ${links.length}`}>{authLabel}</a>
 
   <a class="mobile-menu__cta" href="/planner">
     <span class="mobile-menu__cta-label">discuss the project</span>
